@@ -1,6 +1,80 @@
-# Example Mod
+# water-monster-mod
 
-这是一个基于 Fabric 的 Minecraft 1.21.11 模组，当前主要内容是强化版水怪和 TNT Fishing Rod。
+A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy and the TNT Fishing Rod.
+
+## Features
+
+- Adds a Water Monster entity that spawns in Overworld water areas.
+- The Water Monster actively attacks survival players and no longer suffocates on land.
+- The Water Monster can copy nearby player equipment and use swords, axes, shields, Totems of Undying, and healing supplies.
+- On flat ground, the Water Monster prefers sword and axe combat.
+- The Water Monster can use the TNT Fishing Rod to summon falling TNT in multiple concentric rings.
+- Right-clicking the TNT Fishing Rod summons layered TNT rings from above.
+- Left-clicking a block with the TNT Fishing Rod toggles whether summoned TNT can break blocks.
+- The Water Monster drops the TNT Fishing Rod when killed.
+- Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
+- Water Monster spawn counts are tuned to stay within a reasonable range.
+
+## Requirements
+
+- Minecraft 1.21.11
+- Fabric Loader 0.19.0 or newer
+- Fabric API
+- Java 21
+
+## Build
+
+```bash
+./gradlew build
+```
+
+If your default Java version is not 21, specify Java 21 explicitly:
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/liberica-jdk-21.jdk/Contents/Home ./gradlew build
+```
+
+The built mod jar will be generated at:
+
+```text
+build/libs/模组-1.0.0.jar
+```
+
+## Installation
+
+1. Install Minecraft Fabric Loader.
+2. Install Fabric API.
+3. Put `build/libs/模组-1.0.0.jar` into the game `mods` folder.
+4. Launch the game.
+
+## Main Files
+
+- `src/main/java/com/example/examplemod/ExampleMod.java`: Registers items, entities, spawn rules, and events.
+- `src/main/java/com/example/examplemod/entity/WaterMonsterEntity.java`: Water Monster AI and combat logic.
+- `src/main/java/com/example/examplemod/entity/NoBlockDamageTntEntity.java`: Custom TNT entity with optional block damage.
+- `src/main/java/com/example/examplemod/item/TntFishingRodItem.java`: TNT Fishing Rod usage and mode switching.
+- `src/client/java/com/example/examplemod/ExampleModClient.java`: Client-side renderer registration.
+
+## Development
+
+Common commands:
+
+```bash
+./gradlew build
+./gradlew runClient
+```
+
+This project uses the Gradle Wrapper, so a separate Gradle installation is not required.
+
+## License
+
+MIT
+
+---
+
+# water-monster-mod
+
+这是一个基于 Fabric 的 Minecraft 1.21.11 模组，核心内容是强化版水怪和 TNT Fishing Rod。
 
 ## 功能
 
@@ -8,11 +82,11 @@
 - 水怪会主动攻击生存玩家，不再因为上岸而窒息。
 - 水怪会模仿附近玩家装备，并根据战斗情况使用剑、斧、盾牌、不死图腾和治疗物资。
 - 水怪在平地会优先使用剑和斧近战。
-- 水怪会使用 TNT Fishing Rod 召唤多层圆环 TNT。
-- TNT Fishing Rod 右键召唤从空中下落的多层圆环 TNT。
-- TNT Fishing Rod 左键方块可切换 TNT 是否破坏方块。
-- 水怪死亡后会掉落 TNT Fishing Rod。
-- 自定义 TNT 默认不会破坏方块，开启破坏模式后才会破坏地形。
+- 水怪会使用 TNT Fishing Rod 召唤多层同心圆环 TNT。
+- TNT Fishing Rod 右键会从上空召唤下落的多层圆环 TNT。
+- TNT Fishing Rod 左键方块可切换召唤的 TNT 是否破坏方块。
+- 水怪被击杀后会掉落 TNT Fishing Rod。
+- 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
 - 水怪生成数量已控制在较合理范围。
 
 ## 环境要求
