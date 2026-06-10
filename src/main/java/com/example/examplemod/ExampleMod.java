@@ -4,16 +4,15 @@ import com.example.examplemod.entity.NoBlockDamageTntEntity;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
-import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.SpawnLocationTypes;
-import net.minecraft.entity.SpawnRestriction;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -21,13 +20,16 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
-import net.minecraft.world.Heightmap;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,24 +99,57 @@ public class ExampleMod implements ModInitializer {
         });
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
-
-        SpawnRestriction.register(
-                WATER_MONSTER,
-                SpawnLocationTypes.IN_WATER,
-                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
-                (type, world, spawnReason, pos, random) -> {
-                    if (!world.getFluidState(pos).isIn(FluidTags.WATER)) return false;
-                    return world.getBlockState(pos.down()).isOpaque();
-                }
-        );
-
-        BiomeModifications.addSpawn(
-                BiomeSelectors.foundInOverworld(),
-                SpawnGroup.MONSTER,
-                WATER_MONSTER,
-                8, 1, 2
-        );
+        UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
 
         LOGGER.info("ExampleMod initialized successfully!");
+    }
+
+    private static ActionResult trySummonWaterMonster(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
+        if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isEmpty()) {
+            return ActionResult.PASS;
+        }
+
+        BlockPos topSand = hitResult.getBlockPos();
+        if (!isWaterMonsterAltar(world, topSand)) {
+            return ActionResult.PASS;
+        }
+
+        if (world instanceof ServerWorld serverWorld) {
+            consumeWaterMonsterAltar(serverWorld, topSand);
+            WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, serverWorld);
+            waterMonster.refreshPositionAndAngles(topSand.getX() + 0.5, topSand.getY() + 1.0, topSand.getZ() + 0.5, player.getYaw(), 0.0f);
+            serverWorld.spawnEntity(waterMonster);
+        }
+
+        player.swingHand(hand);
+        return ActionResult.SUCCESS;
+    }
+
+    private static boolean isWaterMonsterAltar(World world, BlockPos topSand) {
+        if (!world.getBlockState(topSand).isOf(Blocks.SAND) || !world.getBlockState(topSand.down()).isOf(Blocks.SAND)) {
+            return false;
+        }
+
+        return hasSandBaseLine(world, topSand, Direction.Axis.X) || hasSandBaseLine(world, topSand, Direction.Axis.Z);
+    }
+
+    private static boolean hasSandBaseLine(World world, BlockPos topSand, Direction.Axis axis) {
+        BlockPos center = topSand.down();
+        Direction positive = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
+        Direction negative = positive.getOpposite();
+        return world.getBlockState(center.offset(positive)).isOf(Blocks.SAND)
+                && world.getBlockState(center.offset(negative)).isOf(Blocks.SAND);
+    }
+
+    private static void consumeWaterMonsterAltar(ServerWorld world, BlockPos topSand) {
+        world.breakBlock(topSand, false);
+        world.breakBlock(topSand.down(), false);
+        if (hasSandBaseLine(world, topSand, Direction.Axis.X)) {
+            world.breakBlock(topSand.down().east(), false);
+            world.breakBlock(topSand.down().west(), false);
+        } else {
+            world.breakBlock(topSand.down().south(), false);
+            world.breakBlock(topSand.down().north(), false);
+        }
     }
 }

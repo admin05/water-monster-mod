@@ -4,7 +4,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 
 ## Features
 
-- Adds a Water Monster entity that spawns in Overworld water areas.
+- Adds a Water Monster entity that is summoned from a survival-friendly sand altar.
 - The Water Monster has three 100-health phases, for 300 total health.
 - The Water Monster displays a boss health bar that updates with its current phase.
 - In phase 1, the Water Monster mirrors the nearby player's equipment, stance, item use, and attack rhythm.
@@ -16,7 +16,8 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - Left-clicking a block with the TNT Fishing Rod toggles whether summoned TNT can break blocks.
 - The Water Monster drops the TNT Fishing Rod when killed.
 - Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
-- Water Monster spawn counts are tuned to stay within a reasonable range.
+- The Water Monster no longer spawns naturally in water.
+- Build a 3-sand base line with 1 sand block centered on top, then right-click the top sand with an empty main hand to summon the Water Monster.
 
 ## Requirements
 
@@ -52,7 +53,7 @@ build/libs/模组-1.0.0.jar
 
 ## Main Files
 
-- `src/main/java/com/example/examplemod/ExampleMod.java`: Registers items, entities, spawn rules, and events.
+- `src/main/java/com/example/examplemod/ExampleMod.java`: Registers items, entities, altar summoning, and events.
 - `src/main/java/com/example/examplemod/entity/WaterMonsterEntity.java`: Water Monster AI and combat logic.
 - `src/main/java/com/example/examplemod/entity/NoBlockDamageTntEntity.java`: Custom TNT entity with optional block damage.
 - `src/main/java/com/example/examplemod/item/TntFishingRodItem.java`: TNT Fishing Rod usage and mode switching.
@@ -81,7 +82,7 @@ MIT
 
 ## 功能
 
-- 新增水怪实体，会在主世界水域中生成。
+- 新增水怪实体，可通过生存模式可完成的沙子祭坛召唤。
 - 水怪拥有三个各 100 点血的阶段，总生命值 300。
 - 水怪会显示 Boss 血条，并随当前阶段更新显示。
 - 1 阶段会复刻附近玩家的装备、姿态、物品使用和攻击节奏。
@@ -93,7 +94,8 @@ MIT
 - TNT Fishing Rod 左键方块可切换召唤的 TNT 是否破坏方块。
 - 水怪被击杀后会掉落 TNT Fishing Rod。
 - 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
-- 水怪生成数量已控制在较合理范围。
+- 水怪不再在水中自然生成。
+- 用 3 个沙子摆成底部一横排，再在中间沙子上方放 1 个沙子；主手空手右键顶部沙子即可召唤水怪。
 
 ## 环境要求
 
@@ -129,7 +131,7 @@ build/libs/模组-1.0.0.jar
 
 ## 主要文件
 
-- `src/main/java/com/example/examplemod/ExampleMod.java`：物品、实体、生成规则和事件注册。
+- `src/main/java/com/example/examplemod/ExampleMod.java`：物品、实体、祭坛召唤和事件注册。
 - `src/main/java/com/example/examplemod/entity/WaterMonsterEntity.java`：水怪 AI 和战斗逻辑。
 - `src/main/java/com/example/examplemod/entity/NoBlockDamageTntEntity.java`：可选破坏方块的自定义 TNT 实体。
 - `src/main/java/com/example/examplemod/item/TntFishingRodItem.java`：TNT Fishing Rod 使用和模式切换逻辑。
