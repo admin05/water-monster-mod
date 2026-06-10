@@ -10,6 +10,8 @@ import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.boss.BossBar;
+import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
@@ -22,7 +24,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -44,6 +48,7 @@ public class WaterMonsterEntity extends HostileEntity {
     private static final double SMART_TARGET_RANGE = 64.0;
 
     private final List<ItemStack> copiedInventory = new ArrayList<>();
+    private final ServerBossBar bossBar = new ServerBossBar(Text.literal("Water Monster"), BossBar.Color.BLUE, BossBar.Style.NOTCHED_10);
     private int lastPhase = PHASE_ONE;
     private int mimicActionCooldown;
     private int smartActionCooldown;
@@ -69,6 +74,7 @@ public class WaterMonsterEntity extends HostileEntity {
         super.tick();
         int phase = getCombatPhase();
         handlePhaseTransition(phase);
+        updateBossBar(phase);
         updateShapeSpeed();
         PlayerEntity copiedPlayer = mimicNearestPlayer(phase);
         tickTntRodCooldown();
@@ -122,6 +128,24 @@ public class WaterMonsterEntity extends HostileEntity {
         return !this.isTouchingWater();
     }
 
+    @Override
+    public void onStartedTrackingBy(ServerPlayerEntity player) {
+        super.onStartedTrackingBy(player);
+        bossBar.addPlayer(player);
+    }
+
+    @Override
+    public void onStoppedTrackingBy(ServerPlayerEntity player) {
+        super.onStoppedTrackingBy(player);
+        bossBar.removePlayer(player);
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        super.remove(reason);
+        bossBar.clearPlayers();
+    }
+
     private int getCombatPhase() {
         if (this.getHealth() > PHASE_HEALTH * 2.0f) return PHASE_ONE;
         if (this.getHealth() > PHASE_HEALTH) return PHASE_TWO;
@@ -130,6 +154,16 @@ public class WaterMonsterEntity extends HostileEntity {
 
     private boolean isAutonomousCombatPhase() {
         return getCombatPhase() >= PHASE_TWO;
+    }
+
+    private void updateBossBar(int phase) {
+        bossBar.setPercent(Math.max(0.0f, Math.min(1.0f, this.getHealth() / this.getMaxHealth())));
+        bossBar.setName(Text.literal("Water Monster - Phase " + phase));
+        bossBar.setColor(switch (phase) {
+            case PHASE_ONE -> BossBar.Color.BLUE;
+            case PHASE_TWO -> BossBar.Color.YELLOW;
+            default -> BossBar.Color.RED;
+        });
     }
 
     private void handlePhaseTransition(int phase) {

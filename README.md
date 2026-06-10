@@ -6,6 +6,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 
 - Adds a Water Monster entity that spawns in Overworld water areas.
 - The Water Monster has three 100-health phases, for 300 total health.
+- The Water Monster displays a boss health bar that updates with its current phase.
 - In phase 1, the Water Monster mirrors the nearby player's equipment, stance, item use, and attack rhythm.
 - In phase 2, the Water Monster actively attacks survival players and flexibly uses copied weapons, tools, shields, Totems of Undying, movement items, and healing supplies.
 - In phase 3, the Water Monster adds a TNT rail cannon attack using the existing custom non-griefing TNT.
@@ -82,6 +83,7 @@ MIT
 
 - 新增水怪实体，会在主世界水域中生成。
 - 水怪拥有三个各 100 点血的阶段，总生命值 300。
+- 水怪会显示 Boss 血条，并随当前阶段更新显示。
 - 1 阶段会复刻附近玩家的装备、姿态、物品使用和攻击节奏。
 - 2 阶段会主动攻击生存玩家，并灵活使用复制到的武器、工具、盾牌、不死图腾、位移道具和治疗物资。
 - 3 阶段会追加使用基于现有自定义 TNT 的 TNT 轨道炮攻击。
