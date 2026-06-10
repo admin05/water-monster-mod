@@ -1,10 +1,12 @@
 package com.example.examplemod;
 
 import com.example.examplemod.entity.NoBlockDamageTntEntity;
+import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -32,6 +34,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class ExampleMod implements ModInitializer {
     public static final String MOD_ID = "examplemod";
@@ -87,6 +91,9 @@ public class ExampleMod implements ModInitializer {
             entries.add(TNT_FISHING_ROD);
         });
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            if (hand == Hand.MAIN_HAND) {
+                WaterMonsterAltarProtection.alertDefenders(world, pos, player);
+            }
             if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isOf(TNT_FISHING_ROD)) {
                 return ActionResult.PASS;
             }
@@ -100,6 +107,8 @@ public class ExampleMod implements ModInitializer {
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
         UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
+        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) ->
+                WaterMonsterAltarProtection.onPlayerBrokenAltarBlock(world, player, pos));
 
         LOGGER.info("ExampleMod initialized successfully!");
     }
@@ -110,12 +119,14 @@ public class ExampleMod implements ModInitializer {
         }
 
         BlockPos topSandstone = hitResult.getBlockPos();
-        if (!isWaterMonsterAltar(world, topSandstone)) {
+        List<BlockPos> altarBlocks = getWaterMonsterAltarBlocks(world, topSandstone);
+        if (altarBlocks.isEmpty()) {
             return ActionResult.PASS;
         }
 
         if (world instanceof ServerWorld serverWorld) {
             WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, serverWorld);
+            waterMonster.setAltarBlocks(altarBlocks);
             waterMonster.refreshPositionAndAngles(topSandstone.getX() + 0.5, topSandstone.getY() + 1.0, topSandstone.getZ() + 0.5, player.getYaw(), 0.0f);
             serverWorld.spawnEntity(waterMonster);
         }
@@ -124,12 +135,18 @@ public class ExampleMod implements ModInitializer {
         return ActionResult.SUCCESS;
     }
 
-    private static boolean isWaterMonsterAltar(World world, BlockPos topSandstone) {
+    private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topSandstone) {
         if (!world.getBlockState(topSandstone).isOf(Blocks.SANDSTONE) || !world.getBlockState(topSandstone.down()).isOf(Blocks.SANDSTONE)) {
-            return false;
+            return List.of();
         }
 
-        return hasSandstoneBaseLine(world, topSandstone, Direction.Axis.X) || hasSandstoneBaseLine(world, topSandstone, Direction.Axis.Z);
+        if (hasSandstoneBaseLine(world, topSandstone, Direction.Axis.X)) {
+            return sandstoneAltarBlocks(topSandstone, Direction.Axis.X);
+        }
+        if (hasSandstoneBaseLine(world, topSandstone, Direction.Axis.Z)) {
+            return sandstoneAltarBlocks(topSandstone, Direction.Axis.Z);
+        }
+        return List.of();
     }
 
     private static boolean hasSandstoneBaseLine(World world, BlockPos topSandstone, Direction.Axis axis) {
@@ -138,5 +155,17 @@ public class ExampleMod implements ModInitializer {
         Direction negative = positive.getOpposite();
         return world.getBlockState(center.offset(positive)).isOf(Blocks.SANDSTONE)
                 && world.getBlockState(center.offset(negative)).isOf(Blocks.SANDSTONE);
+    }
+
+    private static List<BlockPos> sandstoneAltarBlocks(BlockPos topSandstone, Direction.Axis axis) {
+        BlockPos center = topSandstone.down();
+        Direction positive = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
+        Direction negative = positive.getOpposite();
+        return List.of(
+                topSandstone.toImmutable(),
+                center.toImmutable(),
+                center.offset(positive).toImmutable(),
+                center.offset(negative).toImmutable()
+        );
     }
 }

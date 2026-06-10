@@ -2,6 +2,7 @@ package com.example.examplemod.entity;
 
 import com.example.examplemod.ExampleMod;
 import com.example.examplemod.item.TntFishingRodItem;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
@@ -26,6 +27,8 @@ import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -46,8 +49,15 @@ public class WaterMonsterEntity extends HostileEntity {
     private static final double WATER_SPEED = 2.6;
     private static final double LAND_SPEED = 0.32;
     private static final double SMART_TARGET_RANGE = 64.0;
+    private static final float ALTAR_HEALTH_LOSS = 85.0f;
+    private static final int ALTAR_DAMAGE_BLOCKS = 3;
+    private static final int ALTAR_TOTAL_BLOCKS = 4;
+    private static final String ALTAR_BLOCKS_NBT_KEY = "AltarBlocks";
+    private static final String BROKEN_ALTAR_BLOCKS_NBT_KEY = "BrokenAltarBlocks";
 
     private final List<ItemStack> copiedInventory = new ArrayList<>();
+    private final List<BlockPos> altarBlocks = new ArrayList<>();
+    private final List<BlockPos> brokenAltarBlocks = new ArrayList<>();
     private final ServerBossBar bossBar = new ServerBossBar(Text.literal("Water Monster"), BossBar.Color.BLUE, BossBar.Style.NOTCHED_10);
     private int lastPhase = PHASE_ONE;
     private int mimicActionCooldown;
@@ -72,22 +82,25 @@ public class WaterMonsterEntity extends HostileEntity {
     @Override
     public void tick() {
         super.tick();
+        syncAltarHealthPenalty();
+        restoreProtectedAltarBlocks();
         int phase = getCombatPhase();
         handlePhaseTransition(phase);
         updateBossBar(phase);
         updateShapeSpeed();
         PlayerEntity copiedPlayer = mimicNearestPlayer(phase);
+        tickSmartActionCooldown();
         tickTntRodCooldown();
         tickTntRailCannonCooldown();
         tickShieldBreakCooldown();
+        updateSmartTarget();
+        updateCombatMovement();
 
         if (phase == PHASE_ONE) {
             tickMimicPhase(copiedPlayer);
             return;
         }
 
-        updateSmartTarget();
-        updateCombatMovement();
         if (phase >= PHASE_THREE && (tryUseTntRailCannonOnTarget() || tryUseTntFishingRodOnTarget())) {
             return;
         }
@@ -146,6 +159,21 @@ public class WaterMonsterEntity extends HostileEntity {
         bossBar.clearPlayers();
     }
 
+    @Override
+    protected void writeCustomData(WriteView view) {
+        super.writeCustomData(view);
+        view.putIntArray(ALTAR_BLOCKS_NBT_KEY, encodePositions(altarBlocks));
+        view.putIntArray(BROKEN_ALTAR_BLOCKS_NBT_KEY, encodePositions(brokenAltarBlocks));
+    }
+
+    @Override
+    protected void readCustomData(ReadView view) {
+        super.readCustomData(view);
+        view.getOptionalIntArray(ALTAR_BLOCKS_NBT_KEY).ifPresent(encoded -> decodePositions(encoded, altarBlocks));
+        view.getOptionalIntArray(BROKEN_ALTAR_BLOCKS_NBT_KEY).ifPresent(encoded -> decodePositions(encoded, brokenAltarBlocks));
+        syncAltarHealthPenalty();
+    }
+
     private int getCombatPhase() {
         if (this.getHealth() > PHASE_HEALTH * 2.0f) return PHASE_ONE;
         if (this.getHealth() > PHASE_HEALTH) return PHASE_TWO;
@@ -153,7 +181,7 @@ public class WaterMonsterEntity extends HostileEntity {
     }
 
     private boolean isAutonomousCombatPhase() {
-        return getCombatPhase() >= PHASE_TWO;
+        return true;
     }
 
     private void updateBossBar(int phase) {
@@ -404,7 +432,7 @@ public class WaterMonsterEntity extends HostileEntity {
         if ((activeItem == Items.BOW || activeItem == Items.CROSSBOW) && distance >= 6.0 && distance <= 34.0) {
             shootArrow(serverWorld, target);
             mimicActionCooldown = 35;
-        } else if (isFoodLike(activeItem) && this.getHealth() < this.getMaxHealth()) {
+        } else if (isFoodLike(activeItem) && this.getHealth() < this.getMaxHealth() && shouldMimicPlayerHealing()) {
             useFood();
             mimicActionCooldown = 45;
         }
@@ -449,13 +477,10 @@ public class WaterMonsterEntity extends HostileEntity {
 
     private void useCopiedInventoryIntelligently() {
         if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
-        if (smartActionCooldown > 0) {
-            smartActionCooldown--;
-            return;
-        }
+        if (smartActionCooldown > 0) return;
 
         LivingEntity target = this.getTarget();
-        if (this.getHealth() < this.getMaxHealth() * 0.55f && useFood()) {
+        if (canActivelyHeal() && this.getHealth() < this.getMaxHealth() * 0.55f && useFood()) {
             smartActionCooldown = 45;
             return;
         }
@@ -551,6 +576,12 @@ public class WaterMonsterEntity extends HostileEntity {
     private void tickShieldBreakCooldown() {
         if (shieldBreakCooldown > 0) {
             shieldBreakCooldown--;
+        }
+    }
+
+    private void tickSmartActionCooldown() {
+        if (smartActionCooldown > 0) {
+            smartActionCooldown--;
         }
     }
 
@@ -859,6 +890,106 @@ public class WaterMonsterEntity extends HostileEntity {
                 || item == Items.COOKED_CHICKEN || item == Items.COOKED_MUTTON || item == Items.COOKED_COD
                 || item == Items.COOKED_SALMON || item == Items.GOLDEN_APPLE || item == Items.ENCHANTED_GOLDEN_APPLE
                 || item == Items.CARROT || item == Items.POTATO || item == Items.BAKED_POTATO || item == Items.APPLE;
+    }
+
+    public void setAltarBlocks(List<BlockPos> blocks) {
+        altarBlocks.clear();
+        brokenAltarBlocks.clear();
+        for (BlockPos block : blocks) {
+            altarBlocks.add(block.toImmutable());
+        }
+        syncAltarHealthPenalty();
+    }
+
+    public boolean isBoundAltarBlock(BlockPos pos) {
+        BlockPos immutable = pos.toImmutable();
+        return this.isAlive() && altarBlocks.contains(immutable) && !brokenAltarBlocks.contains(immutable);
+    }
+
+    public List<BlockPos> getProtectedAltarBlocks() {
+        if (!this.isAlive() || altarBlocks.isEmpty()) return List.of();
+
+        List<BlockPos> protectedBlocks = new ArrayList<>();
+        for (BlockPos pos : altarBlocks) {
+            if (!brokenAltarBlocks.contains(pos)) {
+                protectedBlocks.add(pos);
+            }
+        }
+        return protectedBlocks;
+    }
+
+    public void defendAltarAgainst(PlayerEntity player) {
+        if (!isWorthTargeting(player)) return;
+
+        this.setTarget(player);
+        targetScanCooldown = 0;
+        smartActionCooldown = Math.min(smartActionCooldown, 2);
+        this.getLookControl().lookAt(player, 45.0f, 45.0f);
+        if (this.squaredDistanceTo(player) > 4.0) {
+            this.getNavigation().startMovingTo(player, this.isTouchingWater() ? 2.25 : 1.25);
+        }
+    }
+
+    public void onAltarBlockBroken(BlockPos pos) {
+        BlockPos immutable = pos.toImmutable();
+        if (!altarBlocks.contains(immutable) || brokenAltarBlocks.contains(immutable)) return;
+
+        brokenAltarBlocks.add(immutable);
+        syncAltarHealthPenalty();
+        if (!canActivelyHeal()) {
+            smartActionCooldown = Math.max(smartActionCooldown, 40);
+        }
+    }
+
+    private void restoreProtectedAltarBlocks() {
+        if (altarBlocks.isEmpty() || !(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
+
+        for (BlockPos pos : altarBlocks) {
+            if (brokenAltarBlocks.contains(pos) || !serverWorld.isPosLoaded(pos)) continue;
+            if (!serverWorld.getBlockState(pos).isOf(Blocks.SANDSTONE)) {
+                serverWorld.setBlockState(pos, Blocks.SANDSTONE.getDefaultState());
+            }
+        }
+    }
+
+    private void syncAltarHealthPenalty() {
+        EntityAttributeInstance maxHealth = this.getAttributeInstance(EntityAttributes.MAX_HEALTH);
+        if (maxHealth == null) return;
+
+        double wantedMaxHealth = TOTAL_HEALTH - Math.min(ALTAR_DAMAGE_BLOCKS, brokenAltarBlocks.size()) * ALTAR_HEALTH_LOSS;
+        if (maxHealth.getBaseValue() != wantedMaxHealth) {
+            maxHealth.setBaseValue(wantedMaxHealth);
+        }
+        if (this.getHealth() > this.getMaxHealth()) {
+            this.setHealth(this.getMaxHealth());
+        }
+    }
+
+    private boolean canActivelyHeal() {
+        return brokenAltarBlocks.size() < ALTAR_TOTAL_BLOCKS;
+    }
+
+    private boolean shouldMimicPlayerHealing() {
+        return canActivelyHeal() || this.getRandom().nextFloat() < 0.2f;
+    }
+
+    private static int[] encodePositions(List<BlockPos> positions) {
+        int[] encoded = new int[positions.size() * 3];
+        for (int i = 0; i < positions.size(); i++) {
+            BlockPos pos = positions.get(i);
+            int offset = i * 3;
+            encoded[offset] = pos.getX();
+            encoded[offset + 1] = pos.getY();
+            encoded[offset + 2] = pos.getZ();
+        }
+        return encoded;
+    }
+
+    private static void decodePositions(int[] encoded, List<BlockPos> positions) {
+        positions.clear();
+        for (int i = 0; i + 2 < encoded.length; i += 3) {
+            positions.add(new BlockPos(encoded[i], encoded[i + 1], encoded[i + 2]));
+        }
     }
 
     private boolean hasCopied(Item item) {

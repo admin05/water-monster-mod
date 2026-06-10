@@ -20,7 +20,9 @@
       "com.example.examplemod.ExampleModClient"
     ]
   },
-  "mixins": [],
+  "mixins": [
+    "examplemod.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.0",
     "minecraft": "~1.21.11",
