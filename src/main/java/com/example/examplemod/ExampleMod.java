@@ -109,15 +109,14 @@ public class ExampleMod implements ModInitializer {
             return ActionResult.PASS;
         }
 
-        BlockPos topSand = hitResult.getBlockPos();
-        if (!isWaterMonsterAltar(world, topSand)) {
+        BlockPos topSandstone = hitResult.getBlockPos();
+        if (!isWaterMonsterAltar(world, topSandstone)) {
             return ActionResult.PASS;
         }
 
         if (world instanceof ServerWorld serverWorld) {
-            consumeWaterMonsterAltar(serverWorld, topSand);
             WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, serverWorld);
-            waterMonster.refreshPositionAndAngles(topSand.getX() + 0.5, topSand.getY() + 1.0, topSand.getZ() + 0.5, player.getYaw(), 0.0f);
+            waterMonster.refreshPositionAndAngles(topSandstone.getX() + 0.5, topSandstone.getY() + 1.0, topSandstone.getZ() + 0.5, player.getYaw(), 0.0f);
             serverWorld.spawnEntity(waterMonster);
         }
 
@@ -125,31 +124,19 @@ public class ExampleMod implements ModInitializer {
         return ActionResult.SUCCESS;
     }
 
-    private static boolean isWaterMonsterAltar(World world, BlockPos topSand) {
-        if (!world.getBlockState(topSand).isOf(Blocks.SAND) || !world.getBlockState(topSand.down()).isOf(Blocks.SAND)) {
+    private static boolean isWaterMonsterAltar(World world, BlockPos topSandstone) {
+        if (!world.getBlockState(topSandstone).isOf(Blocks.SANDSTONE) || !world.getBlockState(topSandstone.down()).isOf(Blocks.SANDSTONE)) {
             return false;
         }
 
-        return hasSandBaseLine(world, topSand, Direction.Axis.X) || hasSandBaseLine(world, topSand, Direction.Axis.Z);
+        return hasSandstoneBaseLine(world, topSandstone, Direction.Axis.X) || hasSandstoneBaseLine(world, topSandstone, Direction.Axis.Z);
     }
 
-    private static boolean hasSandBaseLine(World world, BlockPos topSand, Direction.Axis axis) {
-        BlockPos center = topSand.down();
+    private static boolean hasSandstoneBaseLine(World world, BlockPos topSandstone, Direction.Axis axis) {
+        BlockPos center = topSandstone.down();
         Direction positive = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
         Direction negative = positive.getOpposite();
-        return world.getBlockState(center.offset(positive)).isOf(Blocks.SAND)
-                && world.getBlockState(center.offset(negative)).isOf(Blocks.SAND);
-    }
-
-    private static void consumeWaterMonsterAltar(ServerWorld world, BlockPos topSand) {
-        world.breakBlock(topSand, false);
-        world.breakBlock(topSand.down(), false);
-        if (hasSandBaseLine(world, topSand, Direction.Axis.X)) {
-            world.breakBlock(topSand.down().east(), false);
-            world.breakBlock(topSand.down().west(), false);
-        } else {
-            world.breakBlock(topSand.down().south(), false);
-            world.breakBlock(topSand.down().north(), false);
-        }
+        return world.getBlockState(center.offset(positive)).isOf(Blocks.SANDSTONE)
+                && world.getBlockState(center.offset(negative)).isOf(Blocks.SANDSTONE);
     }
 }

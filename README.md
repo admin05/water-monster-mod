@@ -4,7 +4,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 
 ## Features
 
-- Adds a Water Monster entity that is summoned from a survival-friendly sand altar.
+- Adds a Water Monster entity that is summoned from a survival-friendly sandstone altar.
 - The Water Monster has three 100-health phases, for 300 total health.
 - The Water Monster displays a boss health bar that updates with its current phase.
 - In phase 1, the Water Monster mirrors the nearby player's equipment, stance, item use, and attack rhythm.
@@ -17,7 +17,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - The Water Monster drops the TNT Fishing Rod when killed.
 - Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
 - The Water Monster no longer spawns naturally in water.
-- Build a 3-sand base line with 1 sand block centered on top, then right-click the top sand with an empty main hand to summon the Water Monster.
+- Build a 3-sandstone base line with 1 sandstone block centered on top, then right-click the top sandstone with an empty main hand to summon the Water Monster. The altar remains in place after summoning.
 
 ## Requirements
 
@@ -82,7 +82,7 @@ MIT
 
 ## 功能
 
-- 新增水怪实体，可通过生存模式可完成的沙子祭坛召唤。
+- 新增水怪实体，可通过生存模式可完成的沙岩祭坛召唤。
 - 水怪拥有三个各 100 点血的阶段，总生命值 300。
 - 水怪会显示 Boss 血条，并随当前阶段更新显示。
 - 1 阶段会复刻附近玩家的装备、姿态、物品使用和攻击节奏。
@@ -95,7 +95,7 @@ MIT
 - 水怪被击杀后会掉落 TNT Fishing Rod。
 - 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
 - 水怪不再在水中自然生成。
-- 用 3 个沙子摆成底部一横排，再在中间沙子上方放 1 个沙子；主手空手右键顶部沙子即可召唤水怪。
+- 用 3 个沙岩摆成底部一横排，再在中间沙岩上方放 1 个沙岩；主手空手右键顶部沙岩即可召唤水怪，召唤后祭坛不会消失。
 
 ## 环境要求
 
