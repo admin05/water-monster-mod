@@ -34,15 +34,23 @@ import java.util.EnumSet;
 import java.util.List;
 
 public class WaterMonsterEntity extends HostileEntity {
+    private static final int PHASE_ONE = 1;
+    private static final int PHASE_TWO = 2;
+    private static final int PHASE_THREE = 3;
+    private static final double PHASE_HEALTH = 100.0;
+    private static final double TOTAL_HEALTH = PHASE_HEALTH * 3.0;
     private static final double WATER_SPEED = 2.6;
     private static final double LAND_SPEED = 0.32;
     private static final double SMART_TARGET_RANGE = 64.0;
 
     private final List<ItemStack> copiedInventory = new ArrayList<>();
+    private int lastPhase = PHASE_ONE;
+    private int mimicActionCooldown;
     private int smartActionCooldown;
     private int inventoryCopyCooldown;
     private int targetScanCooldown;
     private int tntRodCooldown;
+    private int tntRailCannonCooldown;
     private int shieldUseTicks;
     private int shieldBreakCooldown;
     private int spearChargeTicks;
@@ -59,13 +67,25 @@ public class WaterMonsterEntity extends HostileEntity {
     @Override
     public void tick() {
         super.tick();
+        int phase = getCombatPhase();
+        handlePhaseTransition(phase);
         updateShapeSpeed();
-        updateSmartTarget();
-        mimicNearestPlayer();
-        updateCombatMovement();
+        PlayerEntity copiedPlayer = mimicNearestPlayer(phase);
         tickTntRodCooldown();
+        tickTntRailCannonCooldown();
         tickShieldBreakCooldown();
-        if (!tryUseTntFishingRodOnTarget() && (shouldPreferSwordOrAxeOnFlatGround(this.getTarget()) || (!tickMaceWindCombat() && !tickSpearCombat()))) {
+
+        if (phase == PHASE_ONE) {
+            tickMimicPhase(copiedPlayer);
+            return;
+        }
+
+        updateSmartTarget();
+        updateCombatMovement();
+        if (phase >= PHASE_THREE && (tryUseTntRailCannonOnTarget() || tryUseTntFishingRodOnTarget())) {
+            return;
+        }
+        if (shouldPreferSwordOrAxeOnFlatGround(this.getTarget()) || (!tickMaceWindCombat() && !tickSpearCombat())) {
             useCopiedInventoryIntelligently();
         }
     }
@@ -73,7 +93,7 @@ public class WaterMonsterEntity extends HostileEntity {
     @Override
     protected void initGoals() {
         this.goalSelector.add(0, new SwimGoal(this));
-        this.goalSelector.add(1, new MeleeAttackGoal(this, 1.45, false));
+        this.goalSelector.add(1, new PhaseMeleeAttackGoal(this, 1.45, false));
         this.goalSelector.add(2, new DragPlayerUnderwaterGoal(this));
         this.goalSelector.add(3, new DestroyBoatGoal(this));
         this.goalSelector.add(4, new WanderAroundGoal(this, 0.9, 15));
@@ -90,7 +110,7 @@ public class WaterMonsterEntity extends HostileEntity {
 
     public static DefaultAttributeContainer.Builder createAttributes() {
         return HostileEntity.createHostileAttributes()
-                .add(EntityAttributes.MAX_HEALTH, 50.0)
+                .add(EntityAttributes.MAX_HEALTH, TOTAL_HEALTH)
                 .add(EntityAttributes.ATTACK_DAMAGE, 14.0)
                 .add(EntityAttributes.MOVEMENT_SPEED, WATER_SPEED)
                 .add(EntityAttributes.FOLLOW_RANGE, 64.0)
@@ -100,6 +120,33 @@ public class WaterMonsterEntity extends HostileEntity {
 
     public boolean isHumanoidForm() {
         return !this.isTouchingWater();
+    }
+
+    private int getCombatPhase() {
+        if (this.getHealth() > PHASE_HEALTH * 2.0f) return PHASE_ONE;
+        if (this.getHealth() > PHASE_HEALTH) return PHASE_TWO;
+        return PHASE_THREE;
+    }
+
+    private boolean isAutonomousCombatPhase() {
+        return getCombatPhase() >= PHASE_TWO;
+    }
+
+    private void handlePhaseTransition(int phase) {
+        if (phase == lastPhase) return;
+
+        lastPhase = phase;
+        smartActionCooldown = 20;
+        mimicActionCooldown = 12;
+        spearChargeTicks = 0;
+        spearTarget = null;
+        maceLaunchTicks = 0;
+        maceDiveTicks = 0;
+        if (phase >= PHASE_THREE) {
+            tntRailCannonCooldown = Math.min(tntRailCannonCooldown, 60);
+            tntRodCooldown = Math.min(tntRodCooldown, 80);
+        }
+        stopShielding();
     }
 
     private void updateShapeSpeed() {
@@ -112,11 +159,11 @@ public class WaterMonsterEntity extends HostileEntity {
         }
     }
 
-    private void mimicNearestPlayer() {
-        if (!(this.getEntityWorld() instanceof ServerWorld)) return;
+    private PlayerEntity mimicNearestPlayer(int phase) {
+        if (!(this.getEntityWorld() instanceof ServerWorld)) return null;
 
         PlayerEntity player = getBestPlayerToCopy();
-        if (player == null) return;
+        if (player == null) return null;
 
         if (copiedInventory.isEmpty() || inventoryCopyCooldown <= 0) {
             copyPlayerInventory(player);
@@ -125,7 +172,7 @@ public class WaterMonsterEntity extends HostileEntity {
             inventoryCopyCooldown--;
         }
 
-        if (this.isHumanoidForm()) {
+        if (this.isHumanoidForm() || phase == PHASE_ONE) {
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 ItemStack stack = player.getEquippedStack(slot);
                 if (!ItemStack.areEqual(this.getEquippedStack(slot), stack)) {
@@ -140,7 +187,10 @@ public class WaterMonsterEntity extends HostileEntity {
             }
         }
 
-        equipTotemIfAvailable();
+        if (phase >= PHASE_TWO) {
+            equipTotemIfAvailable();
+        }
+        return player;
     }
 
     private PlayerEntity getBestPlayerToCopy() {
@@ -273,6 +323,96 @@ public class WaterMonsterEntity extends HostileEntity {
         return best;
     }
 
+    private void tickMimicPhase(PlayerEntity copiedPlayer) {
+        if (mimicActionCooldown > 0) {
+            mimicActionCooldown--;
+        }
+        if (copiedPlayer == null || !copiedPlayer.isAlive()) return;
+
+        LivingEntity target = this.getTarget();
+        if (!(target instanceof PlayerEntity) || !target.isAlive()) {
+            this.setTarget(copiedPlayer);
+            target = copiedPlayer;
+        }
+
+        double distance = this.distanceTo(target);
+        this.getLookControl().lookAt(target, 45.0f, 45.0f);
+        tickShieldUse(target, distance);
+        mirrorActiveItemUse(copiedPlayer, target, distance);
+
+        if (distance > 5.0 && copiedPlayer.isSprinting()) {
+            this.getNavigation().startMovingTo(target, this.isTouchingWater() ? 2.0 : 1.1);
+        } else if (copiedPlayer.isSneaking()) {
+            this.getNavigation().stop();
+        }
+
+        if (copiedPlayer.handSwinging && mimicActionCooldown <= 0) {
+            mimicOffensiveAction(copiedPlayer, target, distance);
+        }
+    }
+
+    private void mirrorActiveItemUse(PlayerEntity copiedPlayer, LivingEntity target, double distance) {
+        if (!copiedPlayer.isUsingItem()) return;
+
+        Hand activeHand = copiedPlayer.getActiveHand();
+        ItemStack activeStack = copiedPlayer.getStackInHand(activeHand);
+        this.setStackInHand(activeHand, activeStack.copy());
+
+        Item activeItem = activeStack.getItem();
+        if (activeItem == Items.SHIELD && activeHand == Hand.OFF_HAND && !this.isUsingItem()) {
+            this.setCurrentHand(Hand.OFF_HAND);
+            shieldUseTicks = 20;
+            return;
+        }
+
+        if (mimicActionCooldown > 0 || !(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
+
+        if ((activeItem == Items.BOW || activeItem == Items.CROSSBOW) && distance >= 6.0 && distance <= 34.0) {
+            shootArrow(serverWorld, target);
+            mimicActionCooldown = 35;
+        } else if (isFoodLike(activeItem) && this.getHealth() < this.getMaxHealth()) {
+            useFood();
+            mimicActionCooldown = 45;
+        }
+    }
+
+    private void mimicOffensiveAction(PlayerEntity copiedPlayer, LivingEntity target, double distance) {
+        if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
+
+        Item item = copiedPlayer.getMainHandStack().getItem();
+        this.setStackInHand(Hand.MAIN_HAND, copiedPlayer.getMainHandStack().copy());
+
+        if ((item == Items.BOW || item == Items.CROSSBOW) && hasCopied(Items.ARROW) && distance >= 6.0 && distance <= 34.0) {
+            shootArrow(serverWorld, target);
+            mimicActionCooldown = 35;
+            return;
+        }
+        if (item == Items.TRIDENT && hasCopied(Items.TRIDENT) && distance <= 30.0) {
+            throwTrident(serverWorld, target);
+            mimicActionCooldown = 45;
+            return;
+        }
+        if (item == Items.WIND_CHARGE && distance > 4.0) {
+            launchWindCharge(serverWorld, target);
+            mimicActionCooldown = 30;
+            return;
+        }
+        if (item == Items.ENDER_PEARL && distance > 10.0) {
+            throwEnderPearl(serverWorld, target);
+            mimicActionCooldown = 70;
+            return;
+        }
+
+        if (distance <= 3.4) {
+            this.tryAttack(serverWorld, target);
+            this.swingHand(Hand.MAIN_HAND);
+        } else if (!copiedPlayer.isSneaking()) {
+            this.getNavigation().startMovingTo(target, copiedPlayer.isSprinting() ? 1.45 : 1.05);
+            this.swingHand(Hand.MAIN_HAND);
+        }
+        mimicActionCooldown = copiedPlayer.isSprinting() ? 8 : 12;
+    }
+
     private void useCopiedInventoryIntelligently() {
         if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
         if (smartActionCooldown > 0) {
@@ -392,6 +532,59 @@ public class WaterMonsterEntity extends HostileEntity {
         if (tntRodCooldown > 0) {
             tntRodCooldown--;
         }
+    }
+
+    private void tickTntRailCannonCooldown() {
+        if (tntRailCannonCooldown > 0) {
+            tntRailCannonCooldown--;
+        }
+    }
+
+    private boolean tryUseTntRailCannonOnTarget() {
+        if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) return false;
+        LivingEntity target = this.getTarget();
+        if (target == null || !target.isAlive()) return false;
+        double distance = this.distanceTo(target);
+        return distance >= 8.0 && distance <= 64.0 && useTntRailCannon(serverWorld, target);
+    }
+
+    private boolean useTntRailCannon(ServerWorld world, LivingEntity target) {
+        if (tntRailCannonCooldown > 0) return false;
+
+        this.setStackInHand(Hand.MAIN_HAND, new ItemStack(ExampleMod.TNT_FISHING_ROD));
+        Vec3d muzzle = this.getEyePos().add(0.0, 0.35, 0.0);
+        Vec3d aim = predictAimPoint(target, 2.8, 0.0).subtract(muzzle);
+        if (aim.lengthSquared() < 0.0001) return false;
+        aim = aim.normalize();
+
+        Vec3d rail = new Vec3d(-aim.z, 0.0, aim.x);
+        if (rail.lengthSquared() < 0.0001) {
+            rail = new Vec3d(1.0, 0.0, 0.0);
+        } else {
+            rail = rail.normalize();
+        }
+
+        for (int i = 0; i < 10; i++) {
+            for (int side = -1; side <= 1; side += 2) {
+                Vec3d position = muzzle
+                        .add(aim.multiply(2.0 + i * 1.25))
+                        .add(rail.multiply(side * 0.85))
+                        .add(0.0, i * 0.03, 0.0);
+                NoBlockDamageTntEntity tnt = new NoBlockDamageTntEntity(ExampleMod.NO_BLOCK_DAMAGE_TNT, world);
+                tnt.setPosition(position.x, position.y, position.z);
+                tnt.setOwner(this);
+                tnt.setBreakBlocks(false);
+                tnt.setFuse(34 + i * 2 + world.random.nextInt(6));
+                Vec3d velocity = aim.multiply(1.15 + i * 0.035).add(0.0, 0.04, 0.0);
+                tnt.setVelocity(velocity);
+                world.spawnEntity(tnt);
+            }
+        }
+
+        this.swingHand(Hand.MAIN_HAND);
+        tntRailCannonCooldown = 260;
+        smartActionCooldown = 50;
+        return true;
     }
 
     private boolean tryUseTntFishingRodOnTarget() {
@@ -549,7 +742,7 @@ public class WaterMonsterEntity extends HostileEntity {
         for (Item item : order) {
             if (hasCopied(item)) return item;
         }
-        return null;
+        return getBestCopiedTool();
     }
 
     private Item getBestCopiedSwordOrAxe() {
@@ -561,6 +754,23 @@ public class WaterMonsterEntity extends HostileEntity {
                 Items.STONE_AXE, Items.STONE_SWORD,
                 Items.GOLDEN_AXE, Items.GOLDEN_SWORD,
                 Items.WOODEN_AXE, Items.WOODEN_SWORD
+        };
+        for (Item item : order) {
+            if (hasCopied(item)) return item;
+        }
+        return null;
+    }
+
+    private Item getBestCopiedTool() {
+        Item[] order = new Item[] {
+                Items.NETHERITE_PICKAXE, Items.NETHERITE_SHOVEL, Items.NETHERITE_HOE,
+                Items.DIAMOND_PICKAXE, Items.DIAMOND_SHOVEL, Items.DIAMOND_HOE,
+                Items.IRON_PICKAXE, Items.IRON_SHOVEL, Items.IRON_HOE,
+                Items.COPPER_PICKAXE, Items.COPPER_SHOVEL, Items.COPPER_HOE,
+                Items.STONE_PICKAXE, Items.STONE_SHOVEL, Items.STONE_HOE,
+                Items.GOLDEN_PICKAXE, Items.GOLDEN_SHOVEL, Items.GOLDEN_HOE,
+                Items.WOODEN_PICKAXE, Items.WOODEN_SHOVEL, Items.WOODEN_HOE,
+                Items.SHEARS, Items.FLINT_AND_STEEL
         };
         for (Item item : order) {
             if (hasCopied(item)) return item;
@@ -759,6 +969,25 @@ public class WaterMonsterEntity extends HostileEntity {
         return world.getFluidState(this.getBlockPos()).isIn(FluidTags.WATER);
     }
 
+    static class PhaseMeleeAttackGoal extends MeleeAttackGoal {
+        private final WaterMonsterEntity entity;
+
+        PhaseMeleeAttackGoal(WaterMonsterEntity entity, double speed, boolean pauseWhenMobIdle) {
+            super(entity, speed, pauseWhenMobIdle);
+            this.entity = entity;
+        }
+
+        @Override
+        public boolean canStart() {
+            return entity.isAutonomousCombatPhase() && super.canStart();
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return entity.isAutonomousCombatPhase() && super.shouldContinue();
+        }
+    }
+
     static class DragPlayerUnderwaterGoal extends Goal {
         private final WaterMonsterEntity entity;
         private PlayerEntity target;
@@ -772,6 +1001,7 @@ public class WaterMonsterEntity extends HostileEntity {
 
         @Override
         public boolean canStart() {
+            if (!entity.isAutonomousCombatPhase()) return false;
             LivingEntity t = entity.getTarget();
             if (t instanceof PlayerEntity player && player.isAlive()) {
                 target = player;
@@ -782,7 +1012,7 @@ public class WaterMonsterEntity extends HostileEntity {
 
         @Override
         public boolean shouldContinue() {
-            return target != null && target.isAlive() && entity.distanceTo(target) < 6.0;
+            return entity.isAutonomousCombatPhase() && target != null && target.isAlive() && entity.distanceTo(target) < 6.0;
         }
 
         @Override
@@ -838,13 +1068,14 @@ public class WaterMonsterEntity extends HostileEntity {
 
         @Override
         public boolean canStart() {
+            if (!entity.isAutonomousCombatPhase()) return false;
             targetBoat = entity.findBestBoatTarget(24.0);
             return targetBoat != null;
         }
 
         @Override
         public boolean shouldContinue() {
-            return targetBoat != null && !targetBoat.isRemoved() && entity.distanceTo(targetBoat) < 30.0;
+            return entity.isAutonomousCombatPhase() && targetBoat != null && !targetBoat.isRemoved() && entity.distanceTo(targetBoat) < 30.0;
         }
 
         @Override
@@ -892,13 +1123,14 @@ public class WaterMonsterEntity extends HostileEntity {
 
         @Override
         public boolean canStart() {
+            if (!entity.isAutonomousCombatPhase()) return false;
             target = entity.findBestBoatTarget(28.0);
             return target != null;
         }
 
         @Override
         public boolean shouldContinue() {
-            return target != null && !target.isRemoved();
+            return entity.isAutonomousCombatPhase() && target != null && !target.isRemoved();
         }
 
         @Override

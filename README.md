@@ -5,8 +5,10 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 ## Features
 
 - Adds a Water Monster entity that spawns in Overworld water areas.
-- The Water Monster actively attacks survival players and no longer suffocates on land.
-- The Water Monster can copy nearby player equipment and use swords, axes, shields, Totems of Undying, and healing supplies.
+- The Water Monster has three 100-health phases, for 300 total health.
+- In phase 1, the Water Monster mirrors the nearby player's equipment, stance, item use, and attack rhythm.
+- In phase 2, the Water Monster actively attacks survival players and flexibly uses copied weapons, tools, shields, Totems of Undying, movement items, and healing supplies.
+- In phase 3, the Water Monster adds a TNT rail cannon attack using the existing custom non-griefing TNT.
 - On flat ground, the Water Monster prefers sword and axe combat.
 - The Water Monster can use the TNT Fishing Rod to summon falling TNT in multiple concentric rings.
 - Right-clicking the TNT Fishing Rod summons layered TNT rings from above.
@@ -79,8 +81,10 @@ MIT
 ## 功能
 
 - 新增水怪实体，会在主世界水域中生成。
-- 水怪会主动攻击生存玩家，不再因为上岸而窒息。
-- 水怪会模仿附近玩家装备，并根据战斗情况使用剑、斧、盾牌、不死图腾和治疗物资。
+- 水怪拥有三个各 100 点血的阶段，总生命值 300。
+- 1 阶段会复刻附近玩家的装备、姿态、物品使用和攻击节奏。
+- 2 阶段会主动攻击生存玩家，并灵活使用复制到的武器、工具、盾牌、不死图腾、位移道具和治疗物资。
+- 3 阶段会追加使用基于现有自定义 TNT 的 TNT 轨道炮攻击。
 - 水怪在平地会优先使用剑和斧近战。
 - 水怪会使用 TNT Fishing Rod 召唤多层同心圆环 TNT。
 - TNT Fishing Rod 右键会从上空召唤下落的多层圆环 TNT。
