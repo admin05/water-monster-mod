@@ -7,8 +7,8 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - Adds a Water Monster entity that is summoned from a survival-friendly sandstone altar.
 - The Water Monster has three 100-health phases, for 300 total health.
 - The Water Monster displays a boss health bar that updates with its current phase.
-- In phase 1, the Water Monster mirrors the nearby player's equipment, stance, item use, and attack rhythm.
-- In phase 2, the Water Monster actively attacks survival players and flexibly uses copied weapons, tools, shields, Totems of Undying, movement items, and healing supplies.
+- In phase 1, the Water Monster only mirrors the nearby player's equipment, stance, item use, and attack rhythm like a player reflection.
+- In phase 2, the Water Monster starts actively attacking survival players and flexibly uses copied weapons, tools, shields, Totems of Undying, movement items, and healing supplies.
 - In phase 3, the Water Monster adds a TNT rail cannon attack using the existing custom non-griefing TNT.
 - On flat ground, the Water Monster prefers sword and axe combat.
 - The Water Monster can use the TNT Fishing Rod to summon falling TNT in multiple concentric rings.
@@ -18,7 +18,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
 - The Water Monster no longer spawns naturally in water.
 - Build a 3-sandstone base line with 1 sandstone block centered on top, then right-click the top sandstone with an empty main hand to summon the Water Monster. The altar remains in place after summoning.
-- Summoned Water Monsters defend their 4 altar sandstone blocks from players.
+- From phase 2 onward, summoned Water Monsters defend their 4 altar sandstone blocks from players.
 - TNT, creepers, and other explosions cannot destroy the bound altar sandstone blocks.
 - Only players can break the bound altar sandstone blocks. Breaking each of the first 3 blocks permanently lowers the Water Monster's maximum health by 85. Breaking the 4th block does not deal damage, but stops the Water Monster from actively healing.
 - After all 4 altar blocks are broken, the Water Monster only has a 20% chance to copy a player's healing action.
@@ -89,8 +89,8 @@ MIT
 - 新增水怪实体，可通过生存模式可完成的沙岩祭坛召唤。
 - 水怪拥有三个各 100 点血的阶段，总生命值 300。
 - 水怪会显示 Boss 血条，并随当前阶段更新显示。
-- 1 阶段会复刻附近玩家的装备、姿态、物品使用和攻击节奏。
-- 2 阶段会主动攻击生存玩家，并灵活使用复制到的武器、工具、盾牌、不死图腾、位移道具和治疗物资。
+- 1 阶段只会像玩家镜像一样复刻附近玩家的装备、姿态、物品使用和攻击节奏。
+- 2 阶段才会开始主动攻击生存玩家，并灵活使用复制到的武器、工具、盾牌、不死图腾、位移道具和治疗物资。
 - 3 阶段会追加使用基于现有自定义 TNT 的 TNT 轨道炮攻击。
 - 水怪在平地会优先使用剑和斧近战。
 - 水怪会使用 TNT Fishing Rod 召唤多层同心圆环 TNT。
@@ -100,7 +100,7 @@ MIT
 - 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
 - 水怪不再在水中自然生成。
 - 用 3 个砂岩摆成底部一横排，再在中间砂岩上方放 1 个砂岩；主手空手右键顶部砂岩即可召唤水怪，召唤后祭坛不会消失。
-- 召唤出的水怪会守护这 4 个祭坛砂岩，玩家尝试破坏时水怪会主动攻击玩家。
+- 召唤出的水怪从 2 阶段开始会守护这 4 个祭坛砂岩，玩家尝试破坏时水怪会主动攻击玩家。
 - TNT、苦力怕等爆炸无法破坏绑定的祭坛砂岩。
 - 只有玩家可以破坏绑定的祭坛砂岩。破坏前 3 个时，每破坏 1 个，水怪永久损失 85 点最大生命，无法恢复；破坏第 4 个不会造成伤害，但水怪不再主动回血。
 - 4 个祭坛砂岩都被破坏后，水怪在玩家回血时只有 20% 概率复刻回血。

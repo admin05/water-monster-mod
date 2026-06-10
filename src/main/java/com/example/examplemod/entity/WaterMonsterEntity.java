@@ -93,14 +93,14 @@ public class WaterMonsterEntity extends HostileEntity {
         tickTntRodCooldown();
         tickTntRailCannonCooldown();
         tickShieldBreakCooldown();
-        updateSmartTarget();
-        updateCombatMovement();
 
         if (phase == PHASE_ONE) {
             tickMimicPhase(copiedPlayer);
             return;
         }
 
+        updateSmartTarget();
+        updateCombatMovement();
         if (phase >= PHASE_THREE && (tryUseTntRailCannonOnTarget() || tryUseTntFishingRodOnTarget())) {
             return;
         }
@@ -181,7 +181,7 @@ public class WaterMonsterEntity extends HostileEntity {
     }
 
     private boolean isAutonomousCombatPhase() {
-        return true;
+        return getCombatPhase() >= PHASE_TWO;
     }
 
     private void updateBossBar(int phase) {
@@ -919,6 +919,7 @@ public class WaterMonsterEntity extends HostileEntity {
     }
 
     public void defendAltarAgainst(PlayerEntity player) {
+        if (!isAutonomousCombatPhase()) return;
         if (!isWorthTargeting(player)) return;
 
         this.setTarget(player);
