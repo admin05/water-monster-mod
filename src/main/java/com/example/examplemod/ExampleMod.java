@@ -118,8 +118,8 @@ public class ExampleMod implements ModInitializer {
             return ActionResult.PASS;
         }
 
-        BlockPos topSandstone = hitResult.getBlockPos();
-        List<BlockPos> altarBlocks = getWaterMonsterAltarBlocks(world, topSandstone);
+        BlockPos topCryingObsidian = hitResult.getBlockPos();
+        List<BlockPos> altarBlocks = getWaterMonsterAltarBlocks(world, topCryingObsidian);
         if (altarBlocks.isEmpty()) {
             return ActionResult.PASS;
         }
@@ -127,7 +127,7 @@ public class ExampleMod implements ModInitializer {
         if (world instanceof ServerWorld serverWorld) {
             WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, serverWorld);
             waterMonster.setAltarBlocks(altarBlocks);
-            waterMonster.refreshPositionAndAngles(topSandstone.getX() + 0.5, topSandstone.getY() + 1.0, topSandstone.getZ() + 0.5, player.getYaw(), 0.0f);
+            waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, player.getYaw(), 0.0f);
             serverWorld.spawnEntity(waterMonster);
         }
 
@@ -135,37 +135,35 @@ public class ExampleMod implements ModInitializer {
         return ActionResult.SUCCESS;
     }
 
-    private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topSandstone) {
-        if (!world.getBlockState(topSandstone).isOf(Blocks.SANDSTONE) || !world.getBlockState(topSandstone.down()).isOf(Blocks.SANDSTONE)) {
+    private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topCryingObsidian) {
+        BlockPos center = topCryingObsidian.down();
+        if (!world.getBlockState(topCryingObsidian).isOf(Blocks.CRYING_OBSIDIAN) || !world.getBlockState(center).isOf(Blocks.CRYING_OBSIDIAN)) {
             return List.of();
         }
 
-        if (hasSandstoneBaseLine(world, topSandstone, Direction.Axis.X)) {
-            return sandstoneAltarBlocks(topSandstone, Direction.Axis.X);
+        if (!hasCryingObsidianBaseCross(world, center)) {
+            return List.of();
         }
-        if (hasSandstoneBaseLine(world, topSandstone, Direction.Axis.Z)) {
-            return sandstoneAltarBlocks(topSandstone, Direction.Axis.Z);
-        }
-        return List.of();
+
+        return cryingObsidianAltarBlocks(topCryingObsidian);
     }
 
-    private static boolean hasSandstoneBaseLine(World world, BlockPos topSandstone, Direction.Axis axis) {
-        BlockPos center = topSandstone.down();
-        Direction positive = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
-        Direction negative = positive.getOpposite();
-        return world.getBlockState(center.offset(positive)).isOf(Blocks.SANDSTONE)
-                && world.getBlockState(center.offset(negative)).isOf(Blocks.SANDSTONE);
+    private static boolean hasCryingObsidianBaseCross(World world, BlockPos center) {
+        return world.getBlockState(center.offset(Direction.NORTH)).isOf(Blocks.CRYING_OBSIDIAN)
+                && world.getBlockState(center.offset(Direction.SOUTH)).isOf(Blocks.CRYING_OBSIDIAN)
+                && world.getBlockState(center.offset(Direction.WEST)).isOf(Blocks.CRYING_OBSIDIAN)
+                && world.getBlockState(center.offset(Direction.EAST)).isOf(Blocks.CRYING_OBSIDIAN);
     }
 
-    private static List<BlockPos> sandstoneAltarBlocks(BlockPos topSandstone, Direction.Axis axis) {
-        BlockPos center = topSandstone.down();
-        Direction positive = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
-        Direction negative = positive.getOpposite();
+    private static List<BlockPos> cryingObsidianAltarBlocks(BlockPos topCryingObsidian) {
+        BlockPos center = topCryingObsidian.down();
         return List.of(
-                topSandstone.toImmutable(),
+                topCryingObsidian.toImmutable(),
                 center.toImmutable(),
-                center.offset(positive).toImmutable(),
-                center.offset(negative).toImmutable()
+                center.offset(Direction.NORTH).toImmutable(),
+                center.offset(Direction.SOUTH).toImmutable(),
+                center.offset(Direction.WEST).toImmutable(),
+                center.offset(Direction.EAST).toImmutable()
         );
     }
 }

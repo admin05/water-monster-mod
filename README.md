@@ -4,7 +4,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 
 ## Features
 
-- Adds a Water Monster entity that is summoned from a survival-friendly sandstone altar.
+- Adds a Water Monster entity that is summoned from a survival-friendly crying obsidian altar.
 - The Water Monster has three 100-health phases, for 300 total health.
 - The Water Monster displays a boss health bar that updates with its current phase.
 - In phase 1, the Water Monster only mirrors the nearby player's equipment, stance, item use, and attack rhythm like a player reflection.
@@ -17,11 +17,11 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - The Water Monster drops the TNT Fishing Rod when killed.
 - Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
 - The Water Monster no longer spawns naturally in water.
-- Build a 3-sandstone base line with 1 sandstone block centered on top, then right-click the top sandstone with an empty main hand to summon the Water Monster. The altar remains in place after summoning.
-- From phase 2 onward, summoned Water Monsters defend their 4 altar sandstone blocks from players.
-- TNT, creepers, and other explosions cannot destroy the bound altar sandstone blocks.
-- Only players can break the bound altar sandstone blocks. Breaking each of the first 3 blocks permanently lowers the Water Monster's maximum health by 85. Breaking the 4th block does not deal damage, but stops the Water Monster from actively healing.
-- After all 4 altar blocks are broken, the Water Monster only has a 20% chance to copy a player's healing action.
+- Build a 2-layer crying obsidian altar: the first layer is a 5-block cross, and the second layer is 1 crying obsidian block centered above it. Right-click the upper block with an empty main hand to summon the Water Monster. The altar remains in place after summoning.
+- From phase 2 onward, summoned Water Monsters defend their 6 altar crying obsidian blocks from players.
+- TNT, creepers, and other explosions cannot destroy the bound altar crying obsidian blocks.
+- Only players can break the bound altar crying obsidian blocks. Breaking each of the first 5 blocks permanently lowers the Water Monster's maximum health by 45. Breaking the 6th block does not deal damage, but stops the Water Monster from actively healing.
+- After all 6 altar blocks are broken, the Water Monster only has a 20% chance to copy a player's healing action.
 
 ## Requirements
 
@@ -86,7 +86,7 @@ MIT
 
 ## 功能
 
-- 新增水怪实体，可通过生存模式可完成的沙岩祭坛召唤。
+- 新增水怪实体，可通过生存模式可完成的哭泣黑曜石祭坛召唤。
 - 水怪拥有三个各 100 点血的阶段，总生命值 300。
 - 水怪会显示 Boss 血条，并随当前阶段更新显示。
 - 1 阶段只会像玩家镜像一样复刻附近玩家的装备、姿态、物品使用和攻击节奏。
@@ -99,11 +99,11 @@ MIT
 - 水怪被击杀后会掉落 TNT Fishing Rod。
 - 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
 - 水怪不再在水中自然生成。
-- 用 3 个砂岩摆成底部一横排，再在中间砂岩上方放 1 个砂岩；主手空手右键顶部砂岩即可召唤水怪，召唤后祭坛不会消失。
-- 召唤出的水怪从 2 阶段开始会守护这 4 个祭坛砂岩，玩家尝试破坏时水怪会主动攻击玩家。
-- TNT、苦力怕等爆炸无法破坏绑定的祭坛砂岩。
-- 只有玩家可以破坏绑定的祭坛砂岩。破坏前 3 个时，每破坏 1 个，水怪永久损失 85 点最大生命，无法恢复；破坏第 4 个不会造成伤害，但水怪不再主动回血。
-- 4 个祭坛砂岩都被破坏后，水怪在玩家回血时只有 20% 概率复刻回血。
+- 用哭泣黑曜石搭 2 层祭坛：第 1 层是 5 个方块的十字形，第 2 层是在中心上方放 1 个哭泣黑曜石；主手空手右键上方方块即可召唤水怪，召唤后祭坛不会消失。
+- 召唤出的水怪从 2 阶段开始会守护这 6 个祭坛哭泣黑曜石，玩家尝试破坏时水怪会主动攻击玩家。
+- TNT、苦力怕等爆炸无法破坏绑定的祭坛哭泣黑曜石。
+- 只有玩家可以破坏绑定的祭坛哭泣黑曜石。破坏前 5 个时，每破坏 1 个，水怪永久损失 45 点最大生命，无法恢复；破坏第 6 个不会造成伤害，但水怪不再主动回血。
+- 6 个祭坛哭泣黑曜石都被破坏后，水怪在玩家回血时只有 20% 概率复刻回血。
 
 ## 环境要求
 

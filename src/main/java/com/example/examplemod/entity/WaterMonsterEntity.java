@@ -23,7 +23,6 @@ import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -49,9 +48,9 @@ public class WaterMonsterEntity extends HostileEntity {
     private static final double WATER_SPEED = 2.6;
     private static final double LAND_SPEED = 0.32;
     private static final double SMART_TARGET_RANGE = 64.0;
-    private static final float ALTAR_HEALTH_LOSS = 85.0f;
-    private static final int ALTAR_DAMAGE_BLOCKS = 3;
-    private static final int ALTAR_TOTAL_BLOCKS = 4;
+    private static final float ALTAR_HEALTH_LOSS = 45.0f;
+    private static final int ALTAR_DAMAGE_BLOCKS = 5;
+    private static final int ALTAR_TOTAL_BLOCKS = 6;
     private static final String ALTAR_BLOCKS_NBT_KEY = "AltarBlocks";
     private static final String BROKEN_ALTAR_BLOCKS_NBT_KEY = "BrokenAltarBlocks";
 
@@ -947,8 +946,8 @@ public class WaterMonsterEntity extends HostileEntity {
 
         for (BlockPos pos : altarBlocks) {
             if (brokenAltarBlocks.contains(pos) || !serverWorld.isPosLoaded(pos)) continue;
-            if (!serverWorld.getBlockState(pos).isOf(Blocks.SANDSTONE)) {
-                serverWorld.setBlockState(pos, Blocks.SANDSTONE.getDefaultState());
+            if (!serverWorld.getBlockState(pos).isOf(Blocks.CRYING_OBSIDIAN)) {
+                serverWorld.setBlockState(pos, Blocks.CRYING_OBSIDIAN.getDefaultState());
             }
         }
     }
@@ -1132,7 +1131,7 @@ public class WaterMonsterEntity extends HostileEntity {
 
     @Override
     public boolean canSpawn(WorldView world) {
-        return world.getFluidState(this.getBlockPos()).isIn(FluidTags.WATER);
+        return false;
     }
 
     static class PhaseMeleeAttackGoal extends MeleeAttackGoal {
