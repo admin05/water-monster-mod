@@ -51,6 +51,7 @@ public class ExampleMod implements ModInitializer {
     private static final int WATER_MONSTER_SUMMON_SOUL_SOUND_TICK = 64;
     private static final int WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK = 124;
     private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
+    private static final double WATER_MONSTER_SKY_CIRCLE_HEIGHT = 24.0;
     private static final double FULL_CIRCLE = Math.PI * 2.0;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
@@ -192,6 +193,7 @@ public class ExampleMod implements ModInitializer {
         waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, summon.yaw(), 0.0f);
         world.spawnEntity(waterMonster);
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.3f, 0.7f);
+        world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.HOSTILE, 1.4f, 0.8f);
         world.playSound(null, topCryingObsidian, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
     }
 
@@ -237,6 +239,7 @@ public class ExampleMod implements ModInitializer {
         emitGroundSoulRing(world, centerX, centerY, centerZ, ritualAge, progress);
         emitEndermanPortalColumn(world, centerX, centerY, centerZ, ritualAge);
         emitSoulFireCrown(world, centerX, centerY, centerZ, ritualAge, progress);
+        emitSkyCircleRitual(world, centerX, centerY, centerZ, altarBlocks, ritualAge, progress);
 
         if (ritualAge % 5 == 0) {
             spawnParticle(world, ParticleTypes.FLAME, centerX, centerY + 0.7, centerZ, 12, 0.55, 0.45, 0.55, 0.04);
@@ -253,6 +256,144 @@ public class ExampleMod implements ModInitializer {
         } else if (ritualAge == WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK) {
             world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_PORTAL_AMBIENT, SoundCategory.HOSTILE, 0.9f, 1.2f);
         }
+    }
+
+    private static void emitSkyCircleRitual(ServerWorld world, double centerX, double centerY, double centerZ, List<BlockPos> altarBlocks, int ritualAge, double progress) {
+        double skyY = centerY + WATER_MONSTER_SKY_CIRCLE_HEIGHT;
+        double circleProgress = smoothStep(Math.min(1.0, progress / 0.58));
+        double radius = 0.35 + circleProgress * 5.25;
+
+        emitSkyCircle(world, centerX, skyY, centerZ, ritualAge, radius);
+        emitChinesePattern(world, centerX, skyY, centerZ, ritualAge, radius, circleProgress);
+
+        if (progress > 0.28) {
+            emitAltarBeams(world, centerX, skyY, centerZ, altarBlocks, ritualAge);
+        }
+        if (progress > 0.62) {
+            emitRandomSkyBolts(world, centerX, skyY, centerZ, centerY, ritualAge, radius);
+        }
+    }
+
+    private static void emitSkyCircle(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        int points = 56;
+        for (int i = 0; i < points; i++) {
+            double angle = FULL_CIRCLE * i / points + ritualAge * 0.015;
+            double x = centerX + Math.cos(angle) * radius;
+            double z = centerZ + Math.sin(angle) * radius;
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY, z, 1, 0.015, 0.015, 0.015, 0.0);
+            if (i % 4 == 0) {
+                spawnParticle(world, ParticleTypes.PORTAL, x, skyY, z, 1, 0.02, 0.02, 0.02, 0.02);
+            }
+        }
+    }
+
+    private static void emitChinesePattern(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius, double circleProgress) {
+        if (circleProgress < 0.35) return;
+
+        double patternRadius = Math.max(0.7, radius * 0.58);
+        emitTaijiDots(world, centerX, skyY, centerZ, ritualAge, patternRadius);
+        emitBaguaMarks(world, centerX, skyY, centerZ, ritualAge, radius * 0.78);
+    }
+
+    private static void emitTaijiDots(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        int points = 34;
+        double spin = ritualAge * 0.035;
+        for (int i = 0; i < points; i++) {
+            double t = (double) i / (points - 1);
+            double angle = spin + Math.PI * (t - 0.5);
+            double waveRadius = radius * Math.sin(Math.PI * t);
+            double x = centerX + Math.cos(angle) * waveRadius;
+            double z = centerZ + Math.sin(angle) * waveRadius;
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY + 0.02, z, 1, 0.01, 0.01, 0.01, 0.0);
+            spawnParticle(world, ParticleTypes.PORTAL, centerX - (x - centerX), skyY + 0.02, centerZ - (z - centerZ), 1, 0.01, 0.01, 0.01, 0.02);
+        }
+
+        double eyeOffset = radius * 0.32;
+        spawnParticle(world, ParticleTypes.SOUL, centerX + Math.cos(spin) * eyeOffset, skyY + 0.04, centerZ + Math.sin(spin) * eyeOffset, 3, 0.04, 0.01, 0.04, 0.0);
+        spawnParticle(world, ParticleTypes.REVERSE_PORTAL, centerX - Math.cos(spin) * eyeOffset, skyY + 0.04, centerZ - Math.sin(spin) * eyeOffset, 3, 0.04, 0.01, 0.04, 0.02);
+    }
+
+    private static void emitBaguaMarks(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        double spin = -ritualAge * 0.01;
+        for (int trigram = 0; trigram < 8; trigram++) {
+            double angle = spin + FULL_CIRCLE * trigram / 8.0;
+            double tangentX = -Math.sin(angle);
+            double tangentZ = Math.cos(angle);
+            double radialX = Math.cos(angle);
+            double radialZ = Math.sin(angle);
+            double markX = centerX + radialX * radius;
+            double markZ = centerZ + radialZ * radius;
+
+            for (int line = -1; line <= 1; line++) {
+                double lineCenterX = markX + radialX * line * 0.18;
+                double lineCenterZ = markZ + radialZ * line * 0.18;
+                emitShortSkyLine(world, lineCenterX, skyY + 0.03, lineCenterZ, tangentX, tangentZ, 0.34, (trigram + line + 8) % 3 == 0);
+            }
+        }
+    }
+
+    private static void emitShortSkyLine(ServerWorld world, double centerX, double y, double centerZ, double dirX, double dirZ, double halfLength, boolean broken) {
+        int points = 5;
+        for (int i = -points; i <= points; i++) {
+            if (broken && Math.abs(i) <= 1) continue;
+            double offset = halfLength * i / points;
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, centerX + dirX * offset, y, centerZ + dirZ * offset, 1, 0.004, 0.004, 0.004, 0.0);
+        }
+    }
+
+    private static void emitAltarBeams(ServerWorld world, double centerX, double skyY, double centerZ, List<BlockPos> altarBlocks, int ritualAge) {
+        for (BlockPos block : altarBlocks) {
+            double targetX = block.getX() + 0.5;
+            double targetY = block.getY() + 1.05;
+            double targetZ = block.getZ() + 0.5;
+            ParticleEffect beamParticle = ritualAge % 3 == 0 ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.PORTAL;
+            emitBeam(world, targetX, skyY - 0.35, targetZ, targetX, targetY, targetZ, beamParticle, 18, 0.012);
+            if (ritualAge % 6 == 0) {
+                spawnParticle(world, ParticleTypes.DRIPPING_OBSIDIAN_TEAR, targetX, targetY + 0.25, targetZ, 4, 0.08, 0.05, 0.08, 0.0);
+            }
+        }
+
+        emitBeam(world, centerX, skyY, centerZ, centerX, skyY - WATER_MONSTER_SKY_CIRCLE_HEIGHT + 1.4, centerZ, ParticleTypes.SOUL_FIRE_FLAME, 28, 0.018);
+    }
+
+    private static void emitRandomSkyBolts(ServerWorld world, double centerX, double skyY, double centerZ, double altarY, int ritualAge, double radius) {
+        for (int bolt = 0; bolt < 3; bolt++) {
+            double seed = ritualAge * 12.9898 + bolt * 78.233;
+            double angle = FULL_CIRCLE * pseudoRandom(seed);
+            double distance = radius * Math.sqrt(pseudoRandom(seed + 19.19)) * 0.82;
+            double endX = centerX + Math.cos(angle) * distance;
+            double endZ = centerZ + Math.sin(angle) * distance;
+            double endY = altarY + 1.0 + pseudoRandom(seed + 37.37) * 2.8;
+            ParticleEffect particle = bolt == 0 ? ParticleTypes.FLAME : (bolt == 1 ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.PORTAL);
+            emitBeam(world, centerX, skyY - 0.1, centerZ, endX, endY, endZ, particle, 16, 0.025);
+        }
+    }
+
+    private static void emitBeam(ServerWorld world, double startX, double startY, double startZ, double endX, double endY, double endZ, ParticleEffect particle, int steps, double jitter) {
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            double x = lerp(startX, endX, t);
+            double y = lerp(startY, endY, t);
+            double z = lerp(startZ, endZ, t);
+            spawnParticle(world, particle, x, y, z, 1, jitter, jitter, jitter, 0.0);
+            if (i % 5 == 0) {
+                spawnParticle(world, ParticleTypes.SOUL, x, y, z, 1, jitter * 0.5, jitter * 0.5, jitter * 0.5, 0.0);
+            }
+        }
+    }
+
+    private static double smoothStep(double value) {
+        double clamped = Math.max(0.0, Math.min(1.0, value));
+        return clamped * clamped * (3.0 - 2.0 * clamped);
+    }
+
+    private static double pseudoRandom(double seed) {
+        double value = Math.sin(seed) * 43758.5453123;
+        return value - Math.floor(value);
+    }
+
+    private static double lerp(double start, double end, double progress) {
+        return start + (end - start) * progress;
     }
 
     private static void emitAltarObsidianTears(ServerWorld world, List<BlockPos> altarBlocks, int ritualAge) {
@@ -321,6 +462,7 @@ public class ExampleMod implements ModInitializer {
         spawnParticle(world, ParticleTypes.SOUL, centerX, centerY + 0.1, centerZ, 36, 0.85, 0.5, 0.85, 0.05);
         spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, centerX, centerY + 0.45, centerZ, 32, 0.75, 0.65, 0.75, 0.05);
         spawnParticle(world, ParticleTypes.FLAME, centerX, centerY + 0.3, centerZ, 28, 0.6, 0.55, 0.6, 0.06);
+        spawnParticle(world, ParticleTypes.EXPLOSION_EMITTER, centerX, centerY + 0.35, centerZ, 1, 0.0, 0.0, 0.0, 0.0);
     }
 
     private static void spawnParticle(ServerWorld world, ParticleEffect particle, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed) {
