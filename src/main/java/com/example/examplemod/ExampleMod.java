@@ -51,7 +51,7 @@ public class ExampleMod implements ModInitializer {
     private static final int WATER_MONSTER_SUMMON_SOUL_SOUND_TICK = 64;
     private static final int WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK = 124;
     private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
-    private static final double WATER_MONSTER_SKY_CIRCLE_HEIGHT = 24.0;
+    private static final double WATER_MONSTER_SKY_CIRCLE_HEIGHT = 14.0;
     private static final double FULL_CIRCLE = Math.PI * 2.0;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
@@ -148,6 +148,7 @@ public class ExampleMod implements ModInitializer {
                         player.getYaw()
                 ));
                 serverWorld.playSound(null, topCryingObsidian, SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.HOSTILE, 1.0f, 0.7f);
+                player.sendMessage(Text.literal("抬头看，水怪召唤圆阵正在天空中展开"), true);
             }
         }
 
@@ -310,10 +311,6 @@ public class ExampleMod implements ModInitializer {
             spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY + 0.02, z, 1, 0.01, 0.01, 0.01, 0.0);
             spawnParticle(world, ParticleTypes.PORTAL, centerX - (x - centerX), skyY + 0.02, centerZ - (z - centerZ), 1, 0.01, 0.01, 0.01, 0.02);
         }
-
-        double eyeOffset = radius * 0.32;
-        spawnParticle(world, ParticleTypes.SOUL, centerX + Math.cos(spin) * eyeOffset, skyY + 0.04, centerZ + Math.sin(spin) * eyeOffset, 3, 0.04, 0.01, 0.04, 0.0);
-        spawnParticle(world, ParticleTypes.REVERSE_PORTAL, centerX - Math.cos(spin) * eyeOffset, skyY + 0.04, centerZ - Math.sin(spin) * eyeOffset, 3, 0.04, 0.01, 0.04, 0.02);
     }
 
     private static void emitBaguaMarks(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
