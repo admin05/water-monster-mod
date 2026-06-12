@@ -264,7 +264,6 @@ public class ExampleMod implements ModInitializer {
         double circleProgress = smoothStep(Math.min(1.0, progress / 0.58));
         double radius = 0.35 + circleProgress * 5.25;
 
-        emitSkyCircle(world, centerX, skyY, centerZ, ritualAge, radius);
         emitChinesePattern(world, centerX, skyY, centerZ, ritualAge, radius, circleProgress);
 
         if (progress > 0.28) {
@@ -272,19 +271,6 @@ public class ExampleMod implements ModInitializer {
         }
         if (progress > 0.62) {
             emitRandomSkyBolts(world, centerX, skyY, centerZ, centerY, ritualAge, radius);
-        }
-    }
-
-    private static void emitSkyCircle(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
-        int points = 56;
-        for (int i = 0; i < points; i++) {
-            double angle = FULL_CIRCLE * i / points + ritualAge * 0.015;
-            double x = centerX + Math.cos(angle) * radius;
-            double z = centerZ + Math.sin(angle) * radius;
-            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY, z, 1, 0.015, 0.015, 0.015, 0.0);
-            if (i % 4 == 0) {
-                spawnParticle(world, ParticleTypes.PORTAL, x, skyY, z, 1, 0.02, 0.02, 0.02, 0.02);
-            }
         }
     }
 
