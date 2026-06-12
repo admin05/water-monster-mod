@@ -293,6 +293,9 @@ public class ExampleMod implements ModInitializer {
         double patternRadius = Math.max(0.7, radius * 0.58);
         emitTaijiDots(world, centerX, skyY, centerZ, ritualAge, patternRadius);
         emitBaguaMarks(world, centerX, skyY, centerZ, ritualAge, radius * 0.78);
+        emitHuiwenBorder(world, centerX, skyY, centerZ, ritualAge, radius * 0.92);
+        emitTalismanStrokes(world, centerX, skyY, centerZ, ritualAge, radius * 0.44);
+        emitSealMark(world, centerX, skyY, centerZ, ritualAge, radius * 0.24);
     }
 
     private static void emitTaijiDots(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
@@ -329,6 +332,92 @@ public class ExampleMod implements ModInitializer {
                 double lineCenterZ = markZ + radialZ * line * 0.18;
                 emitShortSkyLine(world, lineCenterX, skyY + 0.03, lineCenterZ, tangentX, tangentZ, 0.34, (trigram + line + 8) % 3 == 0);
             }
+        }
+    }
+
+    private static void emitHuiwenBorder(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        int motifs = 16;
+        double spin = ritualAge * 0.006;
+        for (int motif = 0; motif < motifs; motif++) {
+            double angle = spin + FULL_CIRCLE * motif / motifs;
+            double nextAngle = spin + FULL_CIRCLE * (motif + 0.5) / motifs;
+            double innerRadius = radius * 0.86;
+            double outerRadius = radius;
+
+            double x1 = centerX + Math.cos(angle) * innerRadius;
+            double z1 = centerZ + Math.sin(angle) * innerRadius;
+            double x2 = centerX + Math.cos(angle) * outerRadius;
+            double z2 = centerZ + Math.sin(angle) * outerRadius;
+            double x3 = centerX + Math.cos(nextAngle) * outerRadius;
+            double z3 = centerZ + Math.sin(nextAngle) * outerRadius;
+            double x4 = centerX + Math.cos(nextAngle) * innerRadius;
+            double z4 = centerZ + Math.sin(nextAngle) * innerRadius;
+
+            emitSkySegment(world, x1, skyY + 0.055, z1, x2, skyY + 0.055, z2, ParticleTypes.SOUL_FIRE_FLAME, 4);
+            emitSkySegment(world, x2, skyY + 0.055, z2, x3, skyY + 0.055, z3, ParticleTypes.SOUL_FIRE_FLAME, 5);
+            emitSkySegment(world, x3, skyY + 0.055, z3, x4, skyY + 0.055, z4, ParticleTypes.PORTAL, 4);
+            if (motif % 2 == 0) {
+                emitSkySegment(world, x4, skyY + 0.055, z4, x1, skyY + 0.055, z1, ParticleTypes.PORTAL, 5);
+            }
+        }
+    }
+
+    private static void emitTalismanStrokes(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        double spin = ritualAge * 0.012;
+        for (int talisman = 0; talisman < 4; talisman++) {
+            double angle = spin + FULL_CIRCLE * talisman / 4.0 + Math.PI / 4.0;
+            double radialX = Math.cos(angle);
+            double radialZ = Math.sin(angle);
+            double tangentX = -Math.sin(angle);
+            double tangentZ = Math.cos(angle);
+            double baseX = centerX + radialX * radius;
+            double baseZ = centerZ + radialZ * radius;
+
+            emitSkySegment(world, baseX - radialX * 0.55, skyY + 0.08, baseZ - radialZ * 0.55, baseX + radialX * 0.55, skyY + 0.08, baseZ + radialZ * 0.55, ParticleTypes.SOUL_FIRE_FLAME, 8);
+            emitSkySegment(world, baseX - tangentX * 0.32, skyY + 0.085, baseZ - tangentZ * 0.32, baseX + tangentX * 0.32, skyY + 0.085, baseZ + tangentZ * 0.32, ParticleTypes.PORTAL, 6);
+            emitSkySegment(world, baseX + radialX * 0.15 - tangentX * 0.22, skyY + 0.09, baseZ + radialZ * 0.15 - tangentZ * 0.22, baseX + radialX * 0.45 + tangentX * 0.22, skyY + 0.09, baseZ + radialZ * 0.45 + tangentZ * 0.22, ParticleTypes.SOUL, 5);
+            emitSkySegment(world, baseX - radialX * 0.38 + tangentX * 0.2, skyY + 0.095, baseZ - radialZ * 0.38 + tangentZ * 0.2, baseX - radialX * 0.05 - tangentX * 0.2, skyY + 0.095, baseZ - radialZ * 0.05 - tangentZ * 0.2, ParticleTypes.REVERSE_PORTAL, 5);
+        }
+    }
+
+    private static void emitSealMark(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double halfSize) {
+        double spin = -ritualAge * 0.018;
+        double cos = Math.cos(spin);
+        double sin = Math.sin(spin);
+        double[][] corners = new double[][] {
+                {-halfSize, -halfSize},
+                {halfSize, -halfSize},
+                {halfSize, halfSize},
+                {-halfSize, halfSize}
+        };
+
+        for (int i = 0; i < corners.length; i++) {
+            double[] a = corners[i];
+            double[] b = corners[(i + 1) % corners.length];
+            double ax = centerX + a[0] * cos - a[1] * sin;
+            double az = centerZ + a[0] * sin + a[1] * cos;
+            double bx = centerX + b[0] * cos - b[1] * sin;
+            double bz = centerZ + b[0] * sin + b[1] * cos;
+            emitSkySegment(world, ax, skyY + 0.11, az, bx, skyY + 0.11, bz, ParticleTypes.FLAME, 8);
+        }
+
+        emitRotatedSealStroke(world, centerX, skyY + 0.12, centerZ, cos, sin, -halfSize * 0.45, 0.0, halfSize * 0.45, 0.0);
+        emitRotatedSealStroke(world, centerX, skyY + 0.12, centerZ, cos, sin, 0.0, -halfSize * 0.45, 0.0, halfSize * 0.45);
+        emitRotatedSealStroke(world, centerX, skyY + 0.12, centerZ, cos, sin, -halfSize * 0.32, -halfSize * 0.28, halfSize * 0.32, halfSize * 0.28);
+    }
+
+    private static void emitRotatedSealStroke(ServerWorld world, double centerX, double y, double centerZ, double cos, double sin, double ax, double az, double bx, double bz) {
+        double startX = centerX + ax * cos - az * sin;
+        double startZ = centerZ + ax * sin + az * cos;
+        double endX = centerX + bx * cos - bz * sin;
+        double endZ = centerZ + bx * sin + bz * cos;
+        emitSkySegment(world, startX, y, startZ, endX, y, endZ, ParticleTypes.FLAME, 6);
+    }
+
+    private static void emitSkySegment(ServerWorld world, double startX, double startY, double startZ, double endX, double endY, double endZ, ParticleEffect particle, int steps) {
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            spawnParticle(world, particle, lerp(startX, endX, t), lerp(startY, endY, t), lerp(startZ, endZ, t), 1, 0.004, 0.004, 0.004, 0.0);
         }
     }
 
