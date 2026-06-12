@@ -5,6 +5,7 @@ import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -18,11 +19,15 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -35,11 +40,16 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class ExampleMod implements ModInitializer {
     public static final String MOD_ID = "examplemod";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static final int WATER_MONSTER_SUMMON_RITUAL_TICKS = 80;
+    private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
+    private static final double FULL_CIRCLE = Math.PI * 2.0;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
     public static final Item TNT_FISHING_ROD = new TntFishingRodItem(new Item.Settings()
@@ -74,6 +84,7 @@ public class ExampleMod implements ModInitializer {
                     .trackingTickInterval(10)
                     .build(NO_BLOCK_DAMAGE_TNT_KEY)
     );
+    private static final List<PendingWaterMonsterSummon> PENDING_WATER_MONSTER_SUMMONS = new ArrayList<>();
 
     @Override
     public void onInitialize() {
@@ -107,6 +118,7 @@ public class ExampleMod implements ModInitializer {
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
         UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
+        ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickPendingWaterMonsterSummons);
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) ->
                 WaterMonsterAltarProtection.onPlayerBrokenAltarBlock(world, player, pos));
 
@@ -125,15 +137,60 @@ public class ExampleMod implements ModInitializer {
         }
 
         if (world instanceof ServerWorld serverWorld) {
-            WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, serverWorld);
-            waterMonster.setAltarBlocks(altarBlocks);
-            waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, player.getYaw(), 0.0f);
-            serverWorld.spawnEntity(waterMonster);
-            waterMonster.startEntranceEffect();
+            if (!hasPendingSummon(serverWorld, topCryingObsidian)) {
+                PENDING_WATER_MONSTER_SUMMONS.add(new PendingWaterMonsterSummon(
+                        serverWorld,
+                        topCryingObsidian.toImmutable(),
+                        altarBlocks.stream().map(BlockPos::toImmutable).toList(),
+                        player.getYaw()
+                ));
+                serverWorld.playSound(null, topCryingObsidian, SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.HOSTILE, 1.0f, 0.7f);
+            }
         }
 
         player.swingHand(hand);
         return ActionResult.SUCCESS;
+    }
+
+    private static boolean hasPendingSummon(ServerWorld world, BlockPos topCryingObsidian) {
+        for (PendingWaterMonsterSummon summon : PENDING_WATER_MONSTER_SUMMONS) {
+            if (summon.matches(world, topCryingObsidian)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void tickPendingWaterMonsterSummons(ServerWorld world) {
+        Iterator<PendingWaterMonsterSummon> iterator = PENDING_WATER_MONSTER_SUMMONS.iterator();
+        while (iterator.hasNext()) {
+            PendingWaterMonsterSummon summon = iterator.next();
+            if (!summon.matchesWorld(world)) {
+                continue;
+            }
+
+            if (!summon.isAltarStillValid(world)) {
+                iterator.remove();
+                continue;
+            }
+
+            if (summon.tickAndShouldSpawn(world)) {
+                spawnWaterMonsterFromRitual(world, summon);
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void spawnWaterMonsterFromRitual(ServerWorld world, PendingWaterMonsterSummon summon) {
+        BlockPos topCryingObsidian = summon.topCryingObsidian();
+        emitRitualCompletionBurst(world, topCryingObsidian);
+
+        WaterMonsterEntity waterMonster = new WaterMonsterEntity(WATER_MONSTER, world);
+        waterMonster.setAltarBlocks(summon.altarBlocks());
+        waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, summon.yaw(), 0.0f);
+        world.spawnEntity(waterMonster);
+        world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.3f, 0.7f);
+        world.playSound(null, topCryingObsidian, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
     }
 
     private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topCryingObsidian) {
@@ -166,5 +223,150 @@ public class ExampleMod implements ModInitializer {
                 center.offset(Direction.WEST).toImmutable(),
                 center.offset(Direction.EAST).toImmutable()
         );
+    }
+
+    private static void emitRitualParticles(ServerWorld world, BlockPos topCryingObsidian, List<BlockPos> altarBlocks, int ritualAge) {
+        double centerX = topCryingObsidian.getX() + 0.5;
+        double centerY = topCryingObsidian.getY() + 0.15;
+        double centerZ = topCryingObsidian.getZ() + 0.5;
+        double progress = (double) ritualAge / WATER_MONSTER_SUMMON_RITUAL_TICKS;
+
+        emitAltarObsidianTears(world, altarBlocks, ritualAge);
+        emitGroundSoulRing(world, centerX, centerY, centerZ, ritualAge, progress);
+        emitEndermanPortalColumn(world, centerX, centerY, centerZ, ritualAge);
+        emitSoulFireCrown(world, centerX, centerY, centerZ, ritualAge, progress);
+
+        if (ritualAge % 5 == 0) {
+            spawnParticle(world, ParticleTypes.FLAME, centerX, centerY + 0.7, centerZ, 12, 0.55, 0.45, 0.55, 0.04);
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, centerX, centerY + 0.85, centerZ, 10, 0.5, 0.5, 0.5, 0.03);
+        }
+        if (ritualAge % 8 == 0) {
+            spawnParticle(world, ParticleTypes.FALLING_OBSIDIAN_TEAR, centerX, centerY + 1.8, centerZ, 8, 0.55, 0.18, 0.55, 0.0);
+            spawnParticle(world, ParticleTypes.PORTAL, centerX, centerY + 1.0, centerZ, 24, 0.75, 0.8, 0.75, 0.16);
+        }
+        if (ritualAge == 0) {
+            world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.HOSTILE, 1.0f, 0.75f);
+        } else if (ritualAge == 32) {
+            world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_SOUL_SAND_STEP, SoundCategory.HOSTILE, 1.0f, 0.65f);
+        } else if (ritualAge == 62) {
+            world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_PORTAL_AMBIENT, SoundCategory.HOSTILE, 0.9f, 1.2f);
+        }
+    }
+
+    private static void emitAltarObsidianTears(ServerWorld world, List<BlockPos> altarBlocks, int ritualAge) {
+        for (BlockPos pos : altarBlocks) {
+            double x = pos.getX() + 0.5;
+            double y = pos.getY() + 1.05;
+            double z = pos.getZ() + 0.5;
+            spawnParticle(world, ParticleTypes.DRIPPING_OBSIDIAN_TEAR, x, y, z, 2, 0.28, 0.02, 0.28, 0.0);
+            if (ritualAge % 10 == 0) {
+                spawnParticle(world, ParticleTypes.FALLING_OBSIDIAN_TEAR, x, y + 0.55, z, 3, 0.2, 0.12, 0.2, 0.0);
+            }
+        }
+    }
+
+    private static void emitGroundSoulRing(ServerWorld world, double centerX, double centerY, double centerZ, int ritualAge, double progress) {
+        int ringPoints = 22;
+        double ringRadius = 0.7 + progress * 2.25;
+        double ringY = centerY + 0.03 + Math.sin(ritualAge * 0.18) * 0.08;
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = (FULL_CIRCLE * i / ringPoints) + ritualAge * 0.12;
+            double x = centerX + Math.cos(angle) * ringRadius;
+            double z = centerZ + Math.sin(angle) * ringRadius;
+            spawnParticle(world, ParticleTypes.SOUL, x, ringY, z, 1, 0.03, 0.02, 0.03, 0.01);
+            if (i % 3 == 0) {
+                spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, ringY + 0.12, z, 1, 0.015, 0.015, 0.015, 0.005);
+            }
+        }
+    }
+
+    private static void emitEndermanPortalColumn(ServerWorld world, double centerX, double centerY, double centerZ, int ritualAge) {
+        for (int i = 0; i < 11; i++) {
+            double spiralAge = ritualAge * 0.28 + i * 0.72;
+            double radius = 0.42 + i * 0.12;
+            double y = centerY + 0.25 + i * 0.2;
+            double x = centerX + Math.cos(spiralAge) * radius;
+            double z = centerZ + Math.sin(spiralAge) * radius;
+            spawnParticle(world, ParticleTypes.PORTAL, x, y, z, 2, 0.05, 0.07, 0.05, 0.08);
+            spawnParticle(world, ParticleTypes.REVERSE_PORTAL, centerX, y + 0.1, centerZ, 1, radius * 0.25, 0.04, radius * 0.25, 0.03);
+            spawnParticle(world, ParticleTypes.DRIPPING_OBSIDIAN_TEAR, x, y + 0.2, z, 1, 0.04, 0.03, 0.04, 0.0);
+        }
+    }
+
+    private static void emitSoulFireCrown(ServerWorld world, double centerX, double centerY, double centerZ, int ritualAge, double progress) {
+        int crownPoints = 10;
+        double crownRadius = 0.35 + progress * 0.8;
+        double crownY = centerY + 1.25 + progress * 1.25;
+        for (int i = 0; i < crownPoints; i++) {
+            double angle = -ritualAge * 0.2 + FULL_CIRCLE * i / crownPoints;
+            double x = centerX + Math.cos(angle) * crownRadius;
+            double z = centerZ + Math.sin(angle) * crownRadius;
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, crownY, z, 1, 0.02, 0.05, 0.02, 0.01);
+            if (i % 2 == 0) {
+                spawnParticle(world, ParticleTypes.FLAME, x, crownY - 0.18, z, 1, 0.02, 0.04, 0.02, 0.01);
+            }
+        }
+    }
+
+    private static void emitRitualCompletionBurst(ServerWorld world, BlockPos topCryingObsidian) {
+        double centerX = topCryingObsidian.getX() + 0.5;
+        double centerY = topCryingObsidian.getY() + 1.0;
+        double centerZ = topCryingObsidian.getZ() + 0.5;
+        spawnParticle(world, ParticleTypes.PORTAL, centerX, centerY + 0.2, centerZ, 72, 0.95, 1.2, 0.95, 0.22);
+        spawnParticle(world, ParticleTypes.REVERSE_PORTAL, centerX, centerY + 0.8, centerZ, 38, 0.75, 0.85, 0.75, 0.08);
+        spawnParticle(world, ParticleTypes.DRIPPING_OBSIDIAN_TEAR, centerX, centerY + 0.75, centerZ, 24, 0.55, 0.75, 0.55, 0.0);
+        spawnParticle(world, ParticleTypes.FALLING_OBSIDIAN_TEAR, centerX, centerY + 1.6, centerZ, 18, 0.6, 0.2, 0.6, 0.0);
+        spawnParticle(world, ParticleTypes.SOUL, centerX, centerY + 0.1, centerZ, 36, 0.85, 0.5, 0.85, 0.05);
+        spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, centerX, centerY + 0.45, centerZ, 32, 0.75, 0.65, 0.75, 0.05);
+        spawnParticle(world, ParticleTypes.FLAME, centerX, centerY + 0.3, centerZ, 28, 0.6, 0.55, 0.6, 0.06);
+    }
+
+    private static void spawnParticle(ServerWorld world, ParticleEffect particle, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed) {
+        world.spawnParticles(particle, x, y, z, count, deltaX, deltaY, deltaZ, speed);
+    }
+
+    private static final class PendingWaterMonsterSummon {
+        private final RegistryKey<World> worldKey;
+        private final BlockPos topCryingObsidian;
+        private final List<BlockPos> altarBlocks;
+        private final float yaw;
+        private int ritualAge;
+
+        private PendingWaterMonsterSummon(ServerWorld world, BlockPos topCryingObsidian, List<BlockPos> altarBlocks, float yaw) {
+            this.worldKey = world.getRegistryKey();
+            this.topCryingObsidian = topCryingObsidian;
+            this.altarBlocks = altarBlocks;
+            this.yaw = yaw;
+        }
+
+        private boolean matchesWorld(ServerWorld world) {
+            return world.getRegistryKey().equals(worldKey);
+        }
+
+        private boolean matches(ServerWorld world, BlockPos pos) {
+            return matchesWorld(world) && topCryingObsidian.equals(pos);
+        }
+
+        private boolean isAltarStillValid(ServerWorld world) {
+            return getWaterMonsterAltarBlocks(world, topCryingObsidian).size() == WATER_MONSTER_ALTAR_BLOCKS;
+        }
+
+        private boolean tickAndShouldSpawn(ServerWorld world) {
+            emitRitualParticles(world, topCryingObsidian, altarBlocks, ritualAge);
+            ritualAge++;
+            return ritualAge >= WATER_MONSTER_SUMMON_RITUAL_TICKS;
+        }
+
+        private BlockPos topCryingObsidian() {
+            return topCryingObsidian;
+        }
+
+        private List<BlockPos> altarBlocks() {
+            return altarBlocks;
+        }
+
+        private float yaw() {
+            return yaw;
+        }
     }
 }

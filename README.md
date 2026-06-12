@@ -18,6 +18,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - Custom TNT protects terrain by default and only damages blocks when block-breaking mode is enabled.
 - The Water Monster no longer spawns naturally in water.
 - Build a 2-layer crying obsidian altar: the first layer is a 5-block cross, and the second layer is 1 crying obsidian block centered above it. Right-click the upper block with an empty main hand to summon the Water Monster. The altar remains in place after summoning.
+- Summoning now plays a staged entrance ritual with crying obsidian tear particles, Enderman portal particles, soul particles, soul fire, and orange-red flame.
 - From phase 2 onward, summoned Water Monsters defend their 6 altar crying obsidian blocks from players.
 - TNT, creepers, and other explosions cannot destroy the bound altar crying obsidian blocks.
 - Only players can break the bound altar crying obsidian blocks. Breaking each of the first 5 blocks permanently lowers the Water Monster's maximum health by 45. Breaking the 6th block does not deal damage, but stops the Water Monster from actively healing.
@@ -100,6 +101,7 @@ MIT
 - 自定义 TNT 默认不会破坏地形，只有开启破坏模式后才会破坏方块。
 - 水怪不再在水中自然生成。
 - 用哭泣黑曜石搭 2 层祭坛：第 1 层是 5 个方块的十字形，第 2 层是在中心上方放 1 个哭泣黑曜石；主手空手右键上方方块即可召唤水怪，召唤后祭坛不会消失。
+- 召唤时会播放分阶段登场仪式，包含哭泣黑曜石紫泪粒子、末影人传送紫色粒子、灵魂粒子、淡蓝色魂火和橙红色火焰。
 - 召唤出的水怪从 2 阶段开始会守护这 6 个祭坛哭泣黑曜石，玩家尝试破坏时水怪会主动攻击玩家。
 - TNT、苦力怕等爆炸无法破坏绑定的祭坛哭泣黑曜石。
 - 只有玩家可以破坏绑定的祭坛哭泣黑曜石。破坏前 5 个时，每破坏 1 个，水怪永久损失 45 点最大生命，无法恢复；破坏第 6 个不会造成伤害，但水怪不再主动回血。
