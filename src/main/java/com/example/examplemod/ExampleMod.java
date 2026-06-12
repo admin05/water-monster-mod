@@ -129,6 +129,7 @@ public class ExampleMod implements ModInitializer {
             waterMonster.setAltarBlocks(altarBlocks);
             waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, player.getYaw(), 0.0f);
             serverWorld.spawnEntity(waterMonster);
+            waterMonster.startEntranceEffect();
         }
 
         player.swingHand(hand);

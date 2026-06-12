@@ -24,8 +24,12 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
@@ -51,6 +55,7 @@ public class WaterMonsterEntity extends HostileEntity {
     private static final float ALTAR_HEALTH_LOSS = 45.0f;
     private static final int ALTAR_DAMAGE_BLOCKS = 5;
     private static final int ALTAR_TOTAL_BLOCKS = 6;
+    private static final int ENTRANCE_EFFECT_DURATION = 80;
     private static final String ALTAR_BLOCKS_NBT_KEY = "AltarBlocks";
     private static final String BROKEN_ALTAR_BLOCKS_NBT_KEY = "BrokenAltarBlocks";
 
@@ -73,6 +78,7 @@ public class WaterMonsterEntity extends HostileEntity {
     private int maceDiveTicks;
     private double maceStartY;
     private double macePeakY;
+    private int entranceParticleTicks;
 
     public WaterMonsterEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -83,6 +89,7 @@ public class WaterMonsterEntity extends HostileEntity {
         super.tick();
         syncAltarHealthPenalty();
         restoreProtectedAltarBlocks();
+        tickEntranceEffect();
         int phase = getCombatPhase();
         handlePhaseTransition(phase);
         updateBossBar(phase);
@@ -140,6 +147,14 @@ public class WaterMonsterEntity extends HostileEntity {
         return !this.isTouchingWater();
     }
 
+    public void startEntranceEffect() {
+        this.entranceParticleTicks = ENTRANCE_EFFECT_DURATION;
+        if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
+            serverWorld.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.2f, 0.7f);
+            serverWorld.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
+        }
+    }
+
     @Override
     public void onStartedTrackingBy(ServerPlayerEntity player) {
         super.onStartedTrackingBy(player);
@@ -181,6 +196,71 @@ public class WaterMonsterEntity extends HostileEntity {
 
     private boolean isAutonomousCombatPhase() {
         return getCombatPhase() >= PHASE_TWO;
+    }
+
+    private void tickEntranceEffect() {
+        if (entranceParticleTicks <= 0 || !(this.getEntityWorld() instanceof ServerWorld serverWorld)) return;
+
+        int age = ENTRANCE_EFFECT_DURATION - entranceParticleTicks;
+        double progress = (double) age / ENTRANCE_EFFECT_DURATION;
+        double centerX = this.getX();
+        double centerY = this.getY() + 0.1;
+        double centerZ = this.getZ();
+
+        spawnEntranceRing(serverWorld, centerX, centerY, centerZ, age, progress);
+        spawnEntranceSpiral(serverWorld, centerX, centerY, centerZ, age);
+        spawnEntranceBurst(serverWorld, centerX, centerY, centerZ, age);
+
+        if (entranceParticleTicks == 48) {
+            serverWorld.playSound(null, centerX, centerY, centerZ, SoundEvents.BLOCK_SOUL_SAND_STEP, SoundCategory.HOSTILE, 1.0f, 0.65f);
+        }
+        if (entranceParticleTicks == 18) {
+            serverWorld.playSound(null, centerX, centerY, centerZ, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 0.8f, 1.25f);
+        }
+
+        entranceParticleTicks--;
+    }
+
+    private void spawnEntranceRing(ServerWorld world, double centerX, double centerY, double centerZ, int age, double progress) {
+        int points = 18;
+        double radius = 0.65 + progress * 2.2;
+        double y = centerY + 0.05 + Math.sin(age * 0.18) * 0.08;
+        for (int i = 0; i < points; i++) {
+            double angle = (Math.PI * 2.0 * i / points) + age * 0.12;
+            double x = centerX + Math.cos(angle) * radius;
+            double z = centerZ + Math.sin(angle) * radius;
+            spawnParticle(world, ParticleTypes.SOUL, x, y, z, 1, 0.03, 0.02, 0.03, 0.01);
+            if (i % 3 == 0) {
+                spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, y + 0.12, z, 1, 0.015, 0.015, 0.015, 0.005);
+            }
+        }
+    }
+
+    private void spawnEntranceSpiral(ServerWorld world, double centerX, double centerY, double centerZ, int age) {
+        for (int i = 0; i < 9; i++) {
+            double spiralAge = age * 0.28 + i * 0.72;
+            double radius = 0.5 + i * 0.13;
+            double y = centerY + 0.25 + i * 0.22;
+            double x = centerX + Math.cos(spiralAge) * radius;
+            double z = centerZ + Math.sin(spiralAge) * radius;
+            spawnParticle(world, ParticleTypes.PORTAL, x, y, z, 2, 0.05, 0.07, 0.05, 0.08);
+            spawnParticle(world, ParticleTypes.DRIPPING_OBSIDIAN_TEAR, x, y + 0.2, z, 1, 0.04, 0.03, 0.04, 0.0);
+        }
+    }
+
+    private void spawnEntranceBurst(ServerWorld world, double centerX, double centerY, double centerZ, int age) {
+        if (age % 5 == 0) {
+            spawnParticle(world, ParticleTypes.FLAME, centerX, centerY + 0.7, centerZ, 12, 0.55, 0.45, 0.55, 0.04);
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, centerX, centerY + 0.85, centerZ, 10, 0.5, 0.5, 0.5, 0.03);
+        }
+        if (age % 8 == 0) {
+            spawnParticle(world, ParticleTypes.FALLING_OBSIDIAN_TEAR, centerX, centerY + 1.8, centerZ, 8, 0.55, 0.18, 0.55, 0.0);
+            spawnParticle(world, ParticleTypes.PORTAL, centerX, centerY + 1.0, centerZ, 24, 0.75, 0.8, 0.75, 0.16);
+        }
+    }
+
+    private static void spawnParticle(ServerWorld world, ParticleEffect particle, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed) {
+        world.spawnParticles(particle, x, y, z, count, deltaX, deltaY, deltaZ, speed);
     }
 
     private void updateBossBar(int phase) {
