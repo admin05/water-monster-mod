@@ -47,7 +47,9 @@ import java.util.List;
 public class ExampleMod implements ModInitializer {
     public static final String MOD_ID = "examplemod";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static final int WATER_MONSTER_SUMMON_RITUAL_TICKS = 80;
+    private static final int WATER_MONSTER_SUMMON_RITUAL_TICKS = 160;
+    private static final int WATER_MONSTER_SUMMON_SOUL_SOUND_TICK = 64;
+    private static final int WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK = 124;
     private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
     private static final double FULL_CIRCLE = Math.PI * 2.0;
 
@@ -246,9 +248,9 @@ public class ExampleMod implements ModInitializer {
         }
         if (ritualAge == 0) {
             world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.HOSTILE, 1.0f, 0.75f);
-        } else if (ritualAge == 32) {
+        } else if (ritualAge == WATER_MONSTER_SUMMON_SOUL_SOUND_TICK) {
             world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_SOUL_SAND_STEP, SoundCategory.HOSTILE, 1.0f, 0.65f);
-        } else if (ritualAge == 62) {
+        } else if (ritualAge == WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK) {
             world.playSound(null, topCryingObsidian, SoundEvents.BLOCK_PORTAL_AMBIENT, SoundCategory.HOSTILE, 0.9f, 1.2f);
         }
     }
