@@ -193,7 +193,7 @@ public class ExampleMod implements ModInitializer {
         waterMonster.refreshPositionAndAngles(topCryingObsidian.getX() + 0.5, topCryingObsidian.getY() + 1.0, topCryingObsidian.getZ() + 0.5, summon.yaw(), 0.0f);
         world.spawnEntity(waterMonster);
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.3f, 0.7f);
-        world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.HOSTILE, 1.4f, 0.8f);
+        world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.HOSTILE, 1.4f, 0.8f);
         world.playSound(null, topCryingObsidian, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
     }
 
