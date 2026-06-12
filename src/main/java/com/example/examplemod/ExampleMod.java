@@ -264,6 +264,7 @@ public class ExampleMod implements ModInitializer {
         double circleProgress = smoothStep(Math.min(1.0, progress / 0.58));
         double radius = 0.35 + circleProgress * 5.25;
 
+        emitSkyCircle(world, centerX, skyY, centerZ, ritualAge, radius);
         emitChinesePattern(world, centerX, skyY, centerZ, ritualAge, radius, circleProgress);
 
         if (progress > 0.28) {
@@ -277,25 +278,22 @@ public class ExampleMod implements ModInitializer {
     private static void emitChinesePattern(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius, double circleProgress) {
         if (circleProgress < 0.35) return;
 
-        double patternRadius = Math.max(0.7, radius * 0.58);
-        emitTaijiDots(world, centerX, skyY, centerZ, ritualAge, patternRadius);
         emitBaguaMarks(world, centerX, skyY, centerZ, ritualAge, radius * 0.78);
         emitHuiwenBorder(world, centerX, skyY, centerZ, ritualAge, radius * 0.92);
         emitTalismanStrokes(world, centerX, skyY, centerZ, ritualAge, radius * 0.44);
         emitSealMark(world, centerX, skyY, centerZ, ritualAge, radius * 0.24);
     }
 
-    private static void emitTaijiDots(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
-        int points = 34;
-        double spin = ritualAge * 0.035;
+    private static void emitSkyCircle(ServerWorld world, double centerX, double skyY, double centerZ, int ritualAge, double radius) {
+        int points = 56;
         for (int i = 0; i < points; i++) {
-            double t = (double) i / (points - 1);
-            double angle = spin + Math.PI * (t - 0.5);
-            double waveRadius = radius * Math.sin(Math.PI * t);
-            double x = centerX + Math.cos(angle) * waveRadius;
-            double z = centerZ + Math.sin(angle) * waveRadius;
-            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY + 0.02, z, 1, 0.01, 0.01, 0.01, 0.0);
-            spawnParticle(world, ParticleTypes.PORTAL, centerX - (x - centerX), skyY + 0.02, centerZ - (z - centerZ), 1, 0.01, 0.01, 0.01, 0.02);
+            double angle = FULL_CIRCLE * i / points + ritualAge * 0.015;
+            double x = centerX + Math.cos(angle) * radius;
+            double z = centerZ + Math.sin(angle) * radius;
+            spawnParticle(world, ParticleTypes.SOUL_FIRE_FLAME, x, skyY, z, 1, 0.015, 0.015, 0.015, 0.0);
+            if (i % 4 == 0) {
+                spawnParticle(world, ParticleTypes.PORTAL, x, skyY, z, 1, 0.02, 0.02, 0.02, 0.02);
+            }
         }
     }
 
