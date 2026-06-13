@@ -13,6 +13,9 @@ import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
@@ -53,6 +56,9 @@ public class WaterMonsterEntity extends HostileEntity {
     private static final int ALTAR_TOTAL_BLOCKS = 6;
     private static final String ALTAR_BLOCKS_NBT_KEY = "AltarBlocks";
     private static final String BROKEN_ALTAR_BLOCKS_NBT_KEY = "BrokenAltarBlocks";
+    private static final String SKIN_VARIANT_NBT_KEY = "SkinVariant";
+    private static final int RANDOM_PLAYER_SKIN_VARIANTS = 3;
+    private static final TrackedData<Integer> SKIN_VARIANT = DataTracker.registerData(WaterMonsterEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
     private final List<ItemStack> copiedInventory = new ArrayList<>();
     private final List<BlockPos> altarBlocks = new ArrayList<>();
@@ -76,6 +82,13 @@ public class WaterMonsterEntity extends HostileEntity {
 
     public WaterMonsterEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
+        setSkinVariant(this.random.nextInt(RANDOM_PLAYER_SKIN_VARIANTS));
+    }
+
+    @Override
+    protected void initDataTracker(DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(SKIN_VARIANT, 0);
     }
 
     @Override
@@ -163,6 +176,7 @@ public class WaterMonsterEntity extends HostileEntity {
         super.writeCustomData(view);
         view.putIntArray(ALTAR_BLOCKS_NBT_KEY, encodePositions(altarBlocks));
         view.putIntArray(BROKEN_ALTAR_BLOCKS_NBT_KEY, encodePositions(brokenAltarBlocks));
+        view.putInt(SKIN_VARIANT_NBT_KEY, getSkinVariant());
     }
 
     @Override
@@ -170,6 +184,7 @@ public class WaterMonsterEntity extends HostileEntity {
         super.readCustomData(view);
         view.getOptionalIntArray(ALTAR_BLOCKS_NBT_KEY).ifPresent(encoded -> decodePositions(encoded, altarBlocks));
         view.getOptionalIntArray(BROKEN_ALTAR_BLOCKS_NBT_KEY).ifPresent(encoded -> decodePositions(encoded, brokenAltarBlocks));
+        setSkinVariant(view.getInt(SKIN_VARIANT_NBT_KEY, getSkinVariant()));
         syncAltarHealthPenalty();
     }
 
@@ -177,6 +192,18 @@ public class WaterMonsterEntity extends HostileEntity {
         if (this.getHealth() > PHASE_HEALTH * 2.0f) return PHASE_ONE;
         if (this.getHealth() > PHASE_HEALTH) return PHASE_TWO;
         return PHASE_THREE;
+    }
+
+    public boolean shouldUseRandomPlayerSkin() {
+        return getCombatPhase() <= PHASE_TWO;
+    }
+
+    public int getSkinVariant() {
+        return Math.floorMod(this.dataTracker.get(SKIN_VARIANT), RANDOM_PLAYER_SKIN_VARIANTS);
+    }
+
+    private void setSkinVariant(int skinVariant) {
+        this.dataTracker.set(SKIN_VARIANT, Math.floorMod(skinVariant, RANDOM_PLAYER_SKIN_VARIANTS));
     }
 
     private boolean isAutonomousCombatPhase() {
