@@ -6,5 +6,6 @@ public class WaterMonsterRenderState extends ArmedEntityRenderState {
     public boolean humanoidForm;
     public boolean attacking;
     public boolean randomPlayerSkin;
+    public boolean phaseThreeSkin;
     public int skinVariant;
 }

@@ -198,6 +198,10 @@ public class WaterMonsterEntity extends HostileEntity {
         return getCombatPhase() <= PHASE_TWO;
     }
 
+    public boolean shouldUsePhaseThreeSkin() {
+        return getCombatPhase() >= PHASE_THREE;
+    }
+
     public int getSkinVariant() {
         return Math.floorMod(this.dataTracker.get(SKIN_VARIANT), RANDOM_PLAYER_SKIN_VARIANTS);
     }

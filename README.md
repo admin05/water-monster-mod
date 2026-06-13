@@ -10,6 +10,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - In phase 1, the Water Monster only mirrors the nearby player's equipment, stance, item use, and attack rhythm like a player reflection.
 - In phase 2, the Water Monster starts actively attacking survival players and flexibly uses copied weapons, tools, shields, Totems of Undying, movement items, and healing supplies.
 - In phases 1 and 2, each Water Monster randomly chooses one of the bundled Steve-style skins and keeps that skin until phase 3.
+- In phase 3, the Water Monster switches to the bundled phase-three Steve-style skin.
 - In phase 3, the Water Monster adds a TNT rail cannon attack using the existing custom non-griefing TNT.
 - On flat ground, the Water Monster prefers sword and axe combat.
 - The Water Monster can use the TNT Fishing Rod to summon falling TNT in multiple concentric rings.
@@ -94,6 +95,7 @@ MIT
 - 1 阶段只会像玩家镜像一样复刻附近玩家的装备、姿态、物品使用和攻击节奏。
 - 2 阶段才会开始主动攻击生存玩家，并灵活使用复制到的武器、工具、盾牌、不死图腾、位移道具和治疗物资。
 - 1 到 2 阶段水怪会从内置的 3 张 Steve 风格皮肤里随机选择 1 张，并保持到进入 3 阶段。
+- 3 阶段水怪会切换为内置的 3 阶段 Steve 风格皮肤。
 - 3 阶段会追加使用基于现有自定义 TNT 的 TNT 轨道炮攻击。
 - 水怪在平地会优先使用剑和斧近战。
 - 水怪会使用 TNT Fishing Rod 召唤多层同心圆环 TNT。
