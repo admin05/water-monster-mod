@@ -292,7 +292,6 @@ public class ExampleMod implements ModInitializer {
 
     private static boolean shouldSpawnShadowGuideFor(ServerPlayerEntity player) {
         if (!player.isAlive() || player.isCreative() || player.isSpectator()) return false;
-        if (player.getCommandTags().contains(WATER_MONSTER_GUIDE_SEEN_TAG)) return false;
         if (player.getCommandTags().contains(WATER_MONSTER_SUMMONED_TAG)) return false;
         if (hasShadowGuideFor(player)) return false;
         return player.age > 20 * 20;
@@ -350,7 +349,7 @@ public class ExampleMod implements ModInitializer {
     }
 
     private static boolean isDarkEnoughForShadowGuide(ServerWorld world, BlockPos pos) {
-        return world.getLightLevel(pos) <= 7;
+        return world.getLightLevel(pos) <= 11;
     }
 
     private static void spawnShadowGuide(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {

@@ -117,7 +117,6 @@ public class ShadowGuideEntity extends PathAwareEntity {
         return player.isAlive()
                 && !player.isCreative()
                 && !player.isSpectator()
-                && !player.getCommandTags().contains(ExampleMod.WATER_MONSTER_GUIDE_SEEN_TAG)
                 && !player.getCommandTags().contains(ExampleMod.WATER_MONSTER_SUMMONED_TAG);
     }
 
