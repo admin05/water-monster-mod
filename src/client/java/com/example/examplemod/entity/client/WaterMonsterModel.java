@@ -88,16 +88,16 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
                 ModelPartBuilder.create().uv(16, 16).cuboid(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F),
                 ModelTransform.origin(0.0F, 4.0F, 0.0F));
         root.addChild("human_left_arm",
-                ModelPartBuilder.create().uv(40, 16).cuboid(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
+                ModelPartBuilder.create().uv(32, 48).cuboid(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(5.0F, 6.0F, 0.0F));
         root.addChild("human_right_arm",
                 ModelPartBuilder.create().uv(40, 16).mirrored().cuboid(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(-5.0F, 6.0F, 0.0F));
         root.addChild("human_left_leg",
-                ModelPartBuilder.create().uv(0, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
+                ModelPartBuilder.create().uv(16, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(2.0F, 16.0F, 0.0F));
         root.addChild("human_right_leg",
-                ModelPartBuilder.create().uv(16, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
+                ModelPartBuilder.create().uv(0, 16).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(-2.0F, 16.0F, 0.0F));
 
         return TexturedModelData.of(data, 64, 64);
@@ -112,12 +112,19 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
         if (state.humanoidForm) {
             humanHead.pitch = state.pitch * 0.017453292F;
             humanHead.yaw = state.relativeHeadYaw * 0.017453292F;
+            humanBody.pitch = 0.0F;
+            humanBody.yaw = 0.0F;
+            humanBody.roll = 0.0F;
             float walk = state.limbSwingAnimationProgress;
             float stride = state.limbSwingAmplitude;
             humanLeftArm.pitch = (float) Math.cos(walk * 0.6662F) * 1.4F * stride;
             humanRightArm.pitch = (float) Math.cos(walk * 0.6662F + Math.PI) * 1.4F * stride;
             humanLeftLeg.pitch = (float) Math.cos(walk * 0.6662F + Math.PI) * 1.4F * stride;
             humanRightLeg.pitch = (float) Math.cos(walk * 0.6662F) * 1.4F * stride;
+            resetYawAndRoll(humanLeftArm);
+            resetYawAndRoll(humanRightArm);
+            resetYawAndRoll(humanLeftLeg);
+            resetYawAndRoll(humanRightLeg);
             return;
         }
 
@@ -155,6 +162,11 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
         humanRightArm.visible = visible;
         humanLeftLeg.visible = visible;
         humanRightLeg.visible = visible;
+    }
+
+    private static void resetYawAndRoll(ModelPart part) {
+        part.yaw = 0.0F;
+        part.roll = 0.0F;
     }
 
     @Override
