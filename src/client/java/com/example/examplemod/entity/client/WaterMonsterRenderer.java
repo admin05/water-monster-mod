@@ -53,7 +53,7 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     }
 
     private static boolean shouldShowCriticalSkin(WaterMonsterRenderState state) {
-        int flickerStep = ((int) state.age / 8) % 5;
-        return flickerStep == 1 || flickerStep == 3;
+        int flickerTick = (int) state.age % 60;
+        return flickerTick < 48;
     }
 }

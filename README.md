@@ -12,6 +12,7 @@ A Fabric mod for Minecraft 1.21.11 focused on an upgraded Water Monster enemy an
 - In phases 1 and 2, each Water Monster randomly chooses one of the bundled Steve-style skins and keeps that skin until phase 3.
 - In phase 3, the Water Monster switches to the bundled phase-three Steve-style skin.
 - At 30 health or lower, the phase-three Water Monster flickers between the phase-three skin and a critical Him-style skin.
+- Before the first Water Monster summoning, a shadow guide can appear in the dark and deliver an altar photo plus an eerie expedition journal.
 - In phase 3, the Water Monster adds a TNT rail cannon attack using the existing custom non-griefing TNT.
 - On flat ground, the Water Monster prefers sword and axe combat.
 - The Water Monster can use the TNT Fishing Rod to summon falling TNT in multiple concentric rings.
@@ -98,6 +99,7 @@ MIT
 - 1 到 2 阶段水怪会从内置的 3 张 Steve 风格皮肤里随机选择 1 张，并保持到进入 3 阶段。
 - 3 阶段水怪会切换为内置的 3 阶段 Steve 风格皮肤。
 - 血量到 30 点及以下时，3 阶段水怪会在 3 阶段皮肤和临界 Him 风格皮肤之间闪烁切换。
+- 首次召唤水怪之前，黑暗中可能会出现一个引路影子，给玩家一张祭坛相片和一本带探险与恐怖氛围的书。
 - 3 阶段会追加使用基于现有自定义 TNT 的 TNT 轨道炮攻击。
 - 水怪在平地会优先使用剑和斧近战。
 - 水怪会使用 TNT Fishing Rod 召唤多层同心圆环 TNT。

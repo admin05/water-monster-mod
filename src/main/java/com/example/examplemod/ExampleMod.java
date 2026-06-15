@@ -1,9 +1,13 @@
 package com.example.examplemod;
 
 import com.example.examplemod.entity.NoBlockDamageTntEntity;
+import com.example.examplemod.entity.ShadowGuideEntity;
 import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.WrittenBookContentComponent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -19,15 +23,18 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -36,6 +43,8 @@ import net.minecraft.util.Rarity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,18 +52,28 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class ExampleMod implements ModInitializer {
     public static final String MOD_ID = "examplemod";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final String WATER_MONSTER_GUIDE_SEEN_TAG = MOD_ID + ".water_monster_guide_seen";
+    public static final String WATER_MONSTER_SUMMONED_TAG = MOD_ID + ".water_monster_summoned";
     private static final int WATER_MONSTER_SUMMON_RITUAL_TICKS = 160;
     private static final int WATER_MONSTER_SUMMON_SOUL_SOUND_TICK = 64;
     private static final int WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK = 124;
     private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
     private static final double WATER_MONSTER_SKY_CIRCLE_HEIGHT = 14.0;
     private static final double FULL_CIRCLE = Math.PI * 2.0;
+    private static final int SHADOW_GUIDE_CHECK_INTERVAL = 20 * 10;
+    private static final int SHADOW_GUIDE_SPAWN_ATTEMPTS = 28;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
+    public static final Item WATER_MONSTER_ALTAR_PHOTO = new Item(new Item.Settings()
+            .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "water_monster_altar_photo")))
+            .maxCount(1)
+            .rarity(Rarity.UNCOMMON)
+    );
     public static final Item TNT_FISHING_ROD = new TntFishingRodItem(new Item.Settings()
             .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "tnt_fishing_rod")))
             .maxCount(1)
@@ -65,6 +84,8 @@ public class ExampleMod implements ModInitializer {
 
     private static final RegistryKey<EntityType<?>> WATER_MONSTER_KEY = RegistryKey.of(
             RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "water_monster"));
+    private static final RegistryKey<EntityType<?>> SHADOW_GUIDE_KEY = RegistryKey.of(
+            RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "shadow_guide"));
     private static final RegistryKey<EntityType<?>> NO_BLOCK_DAMAGE_TNT_KEY = RegistryKey.of(
             RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "no_block_damage_tnt"));
 
@@ -76,6 +97,17 @@ public class ExampleMod implements ModInitializer {
                     .maxTrackingRange(10)
                     .trackingTickInterval(3)
                     .build(WATER_MONSTER_KEY)
+    );
+
+    public static final EntityType<ShadowGuideEntity> SHADOW_GUIDE = Registry.register(
+            Registries.ENTITY_TYPE,
+            SHADOW_GUIDE_KEY,
+            EntityType.Builder.create(ShadowGuideEntity::new, SpawnGroup.MONSTER)
+                    .dimensions(0.6f, 1.8f)
+                    .maxTrackingRange(12)
+                    .trackingTickInterval(3)
+                    .disableSaving()
+                    .build(SHADOW_GUIDE_KEY)
     );
 
     public static final EntityType<NoBlockDamageTntEntity> NO_BLOCK_DAMAGE_TNT = Registry.register(
@@ -94,6 +126,7 @@ public class ExampleMod implements ModInitializer {
         LOGGER.info("ExampleMod initializing!");
 
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "example_item"), EXAMPLE_ITEM);
+        Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "water_monster_altar_photo"), WATER_MONSTER_ALTAR_PHOTO);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "tnt_fishing_rod"), TNT_FISHING_ROD);
         Registry.register(Registries.ITEM_GROUP, EXAMPLE_GROUP_KEY,
                 FabricItemGroup.builder()
@@ -102,6 +135,7 @@ public class ExampleMod implements ModInitializer {
                         .build());
         ItemGroupEvents.modifyEntriesEvent(EXAMPLE_GROUP_KEY).register(entries -> {
             entries.add(EXAMPLE_ITEM);
+            entries.add(WATER_MONSTER_ALTAR_PHOTO);
             entries.add(TNT_FISHING_ROD);
         });
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
@@ -120,8 +154,10 @@ public class ExampleMod implements ModInitializer {
         });
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(SHADOW_GUIDE, ShadowGuideEntity.createAttributes());
         UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
         ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickPendingWaterMonsterSummons);
+        ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickShadowGuideSpawns);
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) ->
                 WaterMonsterAltarProtection.onPlayerBrokenAltarBlock(world, player, pos));
 
@@ -141,6 +177,7 @@ public class ExampleMod implements ModInitializer {
 
         if (world instanceof ServerWorld serverWorld) {
             if (!hasPendingSummon(serverWorld, topCryingObsidian)) {
+                player.addCommandTag(WATER_MONSTER_SUMMONED_TAG);
                 PENDING_WATER_MONSTER_SUMMONS.add(new PendingWaterMonsterSummon(
                         serverWorld,
                         topCryingObsidian.toImmutable(),
@@ -196,6 +233,135 @@ public class ExampleMod implements ModInitializer {
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.3f, 0.7f);
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.HOSTILE, 1.4f, 0.8f);
         world.playSound(null, topCryingObsidian, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
+    }
+
+    private static void tickShadowGuideSpawns(ServerWorld world) {
+        if (world.getTime() % SHADOW_GUIDE_CHECK_INTERVAL != 0) return;
+
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!shouldSpawnShadowGuideFor(player)) continue;
+            findShadowGuideSpawnPos(world, player).ifPresent(pos -> spawnShadowGuide(world, player, pos));
+        }
+    }
+
+    private static boolean shouldSpawnShadowGuideFor(ServerPlayerEntity player) {
+        if (!player.isAlive() || player.isCreative() || player.isSpectator()) return false;
+        if (player.getCommandTags().contains(WATER_MONSTER_GUIDE_SEEN_TAG)) return false;
+        if (player.getCommandTags().contains(WATER_MONSTER_SUMMONED_TAG)) return false;
+        if (hasShadowGuideFor(player)) return false;
+        return player.age > 20 * 20;
+    }
+
+    private static boolean hasShadowGuideFor(ServerPlayerEntity player) {
+        for (ShadowGuideEntity guide : player.getEntityWorld().getEntitiesByClass(
+                ShadowGuideEntity.class,
+                player.getBoundingBox().expand(48.0),
+                guide -> guide.isGuiding(player)
+        )) {
+            return true;
+        }
+        return false;
+    }
+
+    private static Optional<BlockPos> findShadowGuideSpawnPos(ServerWorld world, ServerPlayerEntity player) {
+        Vec3d look = player.getRotationVec(1.0f);
+        Vec3d behind = new Vec3d(-look.x, 0.0, -look.z);
+        if (behind.lengthSquared() < 0.001) {
+            behind = new Vec3d(1.0, 0.0, 0.0);
+        }
+        behind = behind.normalize();
+
+        for (int attempt = 0; attempt < SHADOW_GUIDE_SPAWN_ATTEMPTS; attempt++) {
+            double distance = 8.0 + world.random.nextDouble() * 6.0;
+            double side = (world.random.nextDouble() - 0.5) * 8.0;
+            Vec3d sideVector = new Vec3d(-behind.z, 0.0, behind.x);
+            Vec3d candidate = player.getPos().add(behind.multiply(distance)).add(sideVector.multiply(side));
+            BlockPos base = BlockPos.ofFloored(candidate.x, player.getY(), candidate.z);
+            BlockPos pos = findNearbyStandingPos(world, base);
+            if (pos != null && isDarkEnoughForShadowGuide(world, pos)) {
+                return Optional.of(pos);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static BlockPos findNearbyStandingPos(ServerWorld world, BlockPos base) {
+        int minY = Math.max(world.getBottomY() + 1, base.getY() - 5);
+        int maxY = Math.min(world.getBottomY() + world.getHeight() - 2, base.getY() + 5);
+        for (int y = maxY; y >= minY; y--) {
+            BlockPos pos = new BlockPos(base.getX(), y, base.getZ());
+            if (canShadowGuideStandAt(world, pos)) {
+                return pos;
+            }
+        }
+        return null;
+    }
+
+    private static boolean canShadowGuideStandAt(ServerWorld world, BlockPos pos) {
+        return world.getBlockState(pos.down()).isSolidBlock(world, pos.down())
+                && world.getBlockState(pos).isAir()
+                && world.getBlockState(pos.up()).isAir();
+    }
+
+    private static boolean isDarkEnoughForShadowGuide(ServerWorld world, BlockPos pos) {
+        return world.getLightLevel(pos) <= 7;
+    }
+
+    private static void spawnShadowGuide(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
+        ShadowGuideEntity guide = new ShadowGuideEntity(SHADOW_GUIDE, world);
+        guide.setTargetPlayer(player);
+        double x = pos.getX() + 0.5;
+        double y = pos.getY();
+        double z = pos.getZ() + 0.5;
+        float yaw = (float) MathHelper.wrapDegrees(Math.toDegrees(Math.atan2(player.getZ() - z, player.getX() - x)) - 90.0);
+        guide.refreshPositionAndAngles(x, y, z, yaw, 0.0f);
+        world.spawnEntity(guide);
+        world.playSound(null, pos, SoundEvents.AMBIENT_CAVE.value(), SoundCategory.HOSTILE, 0.55f, 0.7f);
+    }
+
+    public static void giveWaterMonsterGuideGifts(ServerPlayerEntity player) {
+        if (player.getCommandTags().contains(WATER_MONSTER_GUIDE_SEEN_TAG)) return;
+
+        player.addCommandTag(WATER_MONSTER_GUIDE_SEEN_TAG);
+        giveOrDrop(player, createAltarPhoto());
+        giveOrDrop(player, createGuideBook());
+        player.sendMessage(Text.literal("黑影把两样东西塞进你的手中，随后消失在暗处。"), false);
+        player.getEntityWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_WARDEN_NEARBY_CLOSEST, SoundCategory.HOSTILE, 0.8f, 0.65f);
+    }
+
+    private static void giveOrDrop(ServerPlayerEntity player, ItemStack stack) {
+        if (!player.giveItemStack(stack)) {
+            player.dropItem(stack, false);
+        }
+    }
+
+    private static ItemStack createAltarPhoto() {
+        ItemStack photo = new ItemStack(WATER_MONSTER_ALTAR_PHOTO);
+        photo.set(DataComponentTypes.ITEM_NAME, Text.literal("潮湿的祭坛相片"));
+        photo.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+                Text.literal("相片背面被水泡皱，仍能看见两层结构："),
+                Text.literal("第一层：哭泣黑曜石摆成十字，共 5 块。"),
+                Text.literal("第二层：中心上方再放 1 块哭泣黑曜石。"),
+                Text.literal("主手空手右键最上方那块。")
+        )));
+        return photo;
+    }
+
+    private static ItemStack createGuideBook() {
+        ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
+        book.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, new WrittenBookContentComponent(
+                RawFilteredPair.of("潮下来的路"),
+                "无名的湿手",
+                0,
+                List.of(
+                        RawFilteredPair.of(Text.literal("别在太阳底下读完这本书。\n\n我在岸边看见过它的影子：水面没有风，却自己裂开，像有什么东西从下面抬头。")),
+                        RawFilteredPair.of(Text.literal("相片是真的。\n\n第一层五块哭泣黑曜石，摆成十字。\n第二层一块，压在中心上方。\n\n不要点火，不要献血，只用空手触碰最上方。")),
+                        RawFilteredPair.of(Text.literal("如果天空出现淡蓝色的圆，不要低头。\n\n那些光不是给你看的，是给水下的东西认路用的。")),
+                        RawFilteredPair.of(Text.literal("它第一次来时会像你。\n\n后来它会学会你。\n\n最后，它不再需要像任何人。"))
+                ),
+                true
+        ));
+        return book;
     }
 
     private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topCryingObsidian) {
