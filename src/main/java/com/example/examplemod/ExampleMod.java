@@ -5,11 +5,14 @@ import com.example.examplemod.entity.ShadowGuideEntity;
 import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
+import com.example.examplemod.mixin.SpawnRestrictionInvoker;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.WrittenBookContentComponent;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -20,7 +23,10 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 import net.minecraft.block.Blocks;
 import net.minecraft.block.MapColor;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnLocationTypes;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -48,6 +54,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.world.Heightmap;
+import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +79,10 @@ public class ExampleMod implements ModInitializer {
     private static final double FULL_CIRCLE = Math.PI * 2.0;
     private static final int SHADOW_GUIDE_CHECK_INTERVAL = 20 * 10;
     private static final int SHADOW_GUIDE_SPAWN_ATTEMPTS = 28;
+    private static final int SHADOW_GUIDE_NATURAL_SPAWN_WEIGHT = 12;
+    private static final int SHADOW_GUIDE_NATURAL_SPAWN_MIN_GROUP = 1;
+    private static final int SHADOW_GUIDE_NATURAL_SPAWN_MAX_GROUP = 1;
+    private static final double SHADOW_GUIDE_NATURAL_TARGET_RANGE = 32.0;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
     public static final Item TNT_FISHING_ROD = new TntFishingRodItem(new Item.Settings()
@@ -151,6 +164,7 @@ public class ExampleMod implements ModInitializer {
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(SHADOW_GUIDE, ShadowGuideEntity.createAttributes());
+        registerShadowGuideNaturalSpawning();
         UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
         ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickPendingWaterMonsterSummons);
         ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickShadowGuideSpawns);
@@ -158,6 +172,42 @@ public class ExampleMod implements ModInitializer {
                 WaterMonsterAltarProtection.onPlayerBrokenAltarBlock(world, player, pos));
 
         LOGGER.info("ExampleMod initialized successfully!");
+    }
+
+    private static void registerShadowGuideNaturalSpawning() {
+        BiomeModifications.addSpawn(
+                BiomeSelectors.foundInOverworld(),
+                SpawnGroup.MONSTER,
+                SHADOW_GUIDE,
+                SHADOW_GUIDE_NATURAL_SPAWN_WEIGHT,
+                SHADOW_GUIDE_NATURAL_SPAWN_MIN_GROUP,
+                SHADOW_GUIDE_NATURAL_SPAWN_MAX_GROUP
+        );
+        SpawnRestrictionInvoker.examplemod$register(
+                SHADOW_GUIDE,
+                SpawnLocationTypes.ON_GROUND,
+                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
+                ExampleMod::canShadowGuideSpawnNaturally
+        );
+    }
+
+    private static boolean canShadowGuideSpawnNaturally(EntityType<ShadowGuideEntity> type, ServerWorldAccess world, SpawnReason reason, BlockPos pos, Random random) {
+        if (reason != SpawnReason.NATURAL && reason != SpawnReason.CHUNK_GENERATION) return false;
+        ServerWorld serverWorld = world.toServerWorld();
+        return HostileEntity.canSpawnInDark(type, world, reason, pos, random)
+                && canShadowGuideStandAt(serverWorld, pos)
+                && hasEligibleShadowGuideTarget(serverWorld, pos);
+    }
+
+    private static boolean hasEligibleShadowGuideTarget(ServerWorld world, BlockPos pos) {
+        double rangeSquared = SHADOW_GUIDE_NATURAL_TARGET_RANGE * SHADOW_GUIDE_NATURAL_TARGET_RANGE;
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!shouldSpawnShadowGuideFor(player)) continue;
+            if (player.squaredDistanceTo(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= rangeSquared) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ActionResult trySummonWaterMonster(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {

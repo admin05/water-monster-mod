@@ -3,7 +3,8 @@
   "package": "com.example.examplemod.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ExplosionImplMixin"
+    "ExplosionImplMixin",
+    "SpawnRestrictionInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

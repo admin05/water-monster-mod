@@ -22,11 +22,11 @@ import java.util.UUID;
 
 public class ShadowGuideEntity extends PathAwareEntity {
     private static final int MAX_GUIDE_TICKS = 20 * 50;
+    private static final double NATURAL_TARGET_RANGE = 32.0;
     private UUID targetPlayerUuid;
 
     public ShadowGuideEntity(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
-        this.setPersistent();
     }
 
     public static DefaultAttributeContainer.Builder createAttributes() {
@@ -56,7 +56,14 @@ public class ShadowGuideEntity extends PathAwareEntity {
         if (!(this.getEntityWorld() instanceof ServerWorld world)) return;
 
         ServerPlayerEntity target = getTargetPlayer(world);
-        if (target == null || !target.isAlive() || target.isSpectator()) {
+        if (target == null) {
+            target = findNaturalTarget(world);
+            if (target != null) {
+                setTargetPlayer(target);
+            }
+        }
+
+        if (target == null || !isEligibleTarget(target)) {
             discard();
             return;
         }
@@ -89,6 +96,40 @@ public class ShadowGuideEntity extends PathAwareEntity {
     private ServerPlayerEntity getTargetPlayer(ServerWorld world) {
         if (targetPlayerUuid == null) return null;
         return world.getServer().getPlayerManager().getPlayer(targetPlayerUuid);
+    }
+
+    private ServerPlayerEntity findNaturalTarget(ServerWorld world) {
+        ServerPlayerEntity nearest = null;
+        double nearestDistance = NATURAL_TARGET_RANGE * NATURAL_TARGET_RANGE;
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (!isEligibleTarget(player)) continue;
+            if (hasOtherGuideFor(player)) continue;
+            double distance = this.squaredDistanceTo(player);
+            if (distance < nearestDistance) {
+                nearest = player;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    private boolean isEligibleTarget(ServerPlayerEntity player) {
+        return player.isAlive()
+                && !player.isCreative()
+                && !player.isSpectator()
+                && !player.getCommandTags().contains(ExampleMod.WATER_MONSTER_GUIDE_SEEN_TAG)
+                && !player.getCommandTags().contains(ExampleMod.WATER_MONSTER_SUMMONED_TAG);
+    }
+
+    private boolean hasOtherGuideFor(ServerPlayerEntity player) {
+        for (ShadowGuideEntity guide : player.getEntityWorld().getEntitiesByClass(
+                ShadowGuideEntity.class,
+                player.getBoundingBox().expand(NATURAL_TARGET_RANGE),
+                guide -> guide != this && guide.isGuiding(player)
+        )) {
+            return true;
+        }
+        return false;
     }
 
     private void vanish(ServerWorld world) {
