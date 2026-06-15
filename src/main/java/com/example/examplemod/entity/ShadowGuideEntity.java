@@ -128,15 +128,19 @@ public class ShadowGuideEntity extends PathAwareEntity {
 
             entity.getLookControl().lookAt(target, 45.0f, 45.0f);
             if (entity.squaredDistanceTo(target) > 6.25) {
-                Vec3d targetPos = target.getPos();
+                Vec3d targetPos = entityPos(target);
                 entity.getNavigation().startMovingTo(targetPos.x, targetPos.y, targetPos.z, 1.18);
                 if (!entity.isNavigating() && entity.squaredDistanceTo(target) > 36.0) {
-                    Vec3d step = target.getPos().subtract(entity.getPos()).normalize().multiply(0.08);
+                    Vec3d step = entityPos(target).subtract(entityPos(entity)).normalize().multiply(0.08);
                     entity.addVelocity(step.x, 0.0, step.z);
                 }
             } else {
                 entity.getNavigation().stop();
             }
+        }
+
+        private static Vec3d entityPos(net.minecraft.entity.Entity entity) {
+            return new Vec3d(entity.getX(), entity.getY(), entity.getZ());
         }
     }
 }

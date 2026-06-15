@@ -275,7 +275,7 @@ public class ExampleMod implements ModInitializer {
             double distance = 8.0 + world.random.nextDouble() * 6.0;
             double side = (world.random.nextDouble() - 0.5) * 8.0;
             Vec3d sideVector = new Vec3d(-behind.z, 0.0, behind.x);
-            Vec3d candidate = player.getPos().add(behind.multiply(distance)).add(sideVector.multiply(side));
+            Vec3d candidate = entityPos(player).add(behind.multiply(distance)).add(sideVector.multiply(side));
             BlockPos base = BlockPos.ofFloored(candidate.x, player.getY(), candidate.z);
             BlockPos pos = findNearbyStandingPos(world, base);
             if (pos != null && isDarkEnoughForShadowGuide(world, pos)) {
@@ -317,6 +317,10 @@ public class ExampleMod implements ModInitializer {
         guide.refreshPositionAndAngles(x, y, z, yaw, 0.0f);
         world.spawnEntity(guide);
         world.playSound(null, pos, SoundEvents.AMBIENT_CAVE.value(), SoundCategory.HOSTILE, 0.55f, 0.7f);
+    }
+
+    private static Vec3d entityPos(net.minecraft.entity.Entity entity) {
+        return new Vec3d(entity.getX(), entity.getY(), entity.getZ());
     }
 
     public static void giveWaterMonsterGuideGifts(ServerPlayerEntity player) {
