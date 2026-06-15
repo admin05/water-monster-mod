@@ -6,6 +6,7 @@ import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.WrittenBookContentComponent;
 import net.fabricmc.api.ModInitializer;
@@ -17,6 +18,7 @@ import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.MapColor;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.player.PlayerEntity;
@@ -24,6 +26,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.map.MapState;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
@@ -69,11 +72,6 @@ public class ExampleMod implements ModInitializer {
     private static final int SHADOW_GUIDE_SPAWN_ATTEMPTS = 28;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
-    public static final Item WATER_MONSTER_ALTAR_PHOTO = new Item(new Item.Settings()
-            .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "water_monster_altar_photo")))
-            .maxCount(1)
-            .rarity(Rarity.UNCOMMON)
-    );
     public static final Item TNT_FISHING_ROD = new TntFishingRodItem(new Item.Settings()
             .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "tnt_fishing_rod")))
             .maxCount(1)
@@ -126,7 +124,6 @@ public class ExampleMod implements ModInitializer {
         LOGGER.info("ExampleMod initializing!");
 
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "example_item"), EXAMPLE_ITEM);
-        Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "water_monster_altar_photo"), WATER_MONSTER_ALTAR_PHOTO);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "tnt_fishing_rod"), TNT_FISHING_ROD);
         Registry.register(Registries.ITEM_GROUP, EXAMPLE_GROUP_KEY,
                 FabricItemGroup.builder()
@@ -135,7 +132,6 @@ public class ExampleMod implements ModInitializer {
                         .build());
         ItemGroupEvents.modifyEntriesEvent(EXAMPLE_GROUP_KEY).register(entries -> {
             entries.add(EXAMPLE_ITEM);
-            entries.add(WATER_MONSTER_ALTAR_PHOTO);
             entries.add(TNT_FISHING_ROD);
         });
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
@@ -327,7 +323,7 @@ public class ExampleMod implements ModInitializer {
         if (player.getCommandTags().contains(WATER_MONSTER_GUIDE_SEEN_TAG)) return;
 
         player.addCommandTag(WATER_MONSTER_GUIDE_SEEN_TAG);
-        giveOrDrop(player, createAltarPhoto());
+        giveOrDrop(player, createAltarMap((ServerWorld) player.getEntityWorld()));
         giveOrDrop(player, createGuideBook());
         player.sendMessage(Text.literal("黑影把两样东西塞进你的手中，随后消失在暗处。"), false);
         player.getEntityWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_WARDEN_NEARBY_CLOSEST, SoundCategory.HOSTILE, 0.8f, 0.65f);
@@ -339,16 +335,166 @@ public class ExampleMod implements ModInitializer {
         }
     }
 
-    private static ItemStack createAltarPhoto() {
-        ItemStack photo = new ItemStack(WATER_MONSTER_ALTAR_PHOTO);
-        photo.set(DataComponentTypes.ITEM_NAME, Text.literal("潮湿的祭坛相片"));
-        photo.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("相片背面被水泡皱，仍能看见两层结构："),
+    private static ItemStack createAltarMap(ServerWorld world) {
+        ItemStack map = new ItemStack(Items.FILLED_MAP);
+        MapIdComponent mapId = world.increaseAndGetMapId();
+        MapState mapState = MapState.of((byte) 0, true, world.getRegistryKey());
+        drawWaterMonsterAltarMap(mapState);
+        mapState.markDirty();
+        world.putMapState(mapId, mapState);
+
+        map.set(DataComponentTypes.MAP_ID, mapId);
+        map.set(DataComponentTypes.ITEM_NAME, Text.literal("潮湿的祭坛地图"));
+        map.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+                Text.literal("地图上画着一座两层祭坛："),
                 Text.literal("第一层：哭泣黑曜石摆成十字，共 5 块。"),
                 Text.literal("第二层：中心上方再放 1 块哭泣黑曜石。"),
                 Text.literal("主手空手右键最上方那块。")
         )));
-        return photo;
+        return map;
+    }
+
+    private static void drawWaterMonsterAltarMap(MapState mapState) {
+        byte sky = color(MapColor.LIGHT_BLUE, MapColor.Brightness.HIGH);
+        byte horizon = color(MapColor.PALE_GREEN, MapColor.Brightness.NORMAL);
+        byte grass = color(MapColor.DARK_GREEN, MapColor.Brightness.NORMAL);
+        byte grassDark = color(MapColor.GREEN, MapColor.Brightness.LOW);
+        byte black = color(MapColor.BLACK, MapColor.Brightness.NORMAL);
+        byte blackDark = color(MapColor.BLACK, MapColor.Brightness.LOWEST);
+        byte gray = color(MapColor.DEEPSLATE_GRAY, MapColor.Brightness.LOW);
+        byte purple = color(MapColor.PURPLE, MapColor.Brightness.NORMAL);
+        byte purpleBright = color(MapColor.PURPLE, MapColor.Brightness.HIGH);
+        byte purpleDark = color(MapColor.TERRACOTTA_PURPLE, MapColor.Brightness.NORMAL);
+        byte glint = color(MapColor.WHITE, MapColor.Brightness.HIGH);
+
+        fillRect(mapState, 0, 0, 127, 45, sky);
+        fillRect(mapState, 0, 46, 127, 51, horizon);
+        fillRect(mapState, 0, 52, 127, 127, grass);
+        for (int y = 55; y < 128; y += 6) {
+            for (int x = (y / 2) % 8; x < 128; x += 9) {
+                setPixel(mapState, x, y, grassDark);
+            }
+        }
+
+        drawBlock(mapState, 64, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
+        drawBlock(mapState, 36, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
+        drawBlock(mapState, 92, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
+        drawBlock(mapState, 64, 63, 28, black, blackDark, gray, purple, purpleBright, purpleDark);
+        drawBlock(mapState, 64, 101, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
+        drawBlock(mapState, 64, 50, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
+
+        drawLine(mapState, 64, 73, 64, 91, glint);
+        drawLine(mapState, 55, 82, 73, 82, glint);
+        setPixel(mapState, 63, 81, glint);
+        setPixel(mapState, 65, 83, glint);
+    }
+
+    private static void drawBlock(MapState mapState, int centerX, int topY, int size, byte top, byte front, byte side, byte crack, byte brightCrack, byte darkCrack) {
+        int half = size / 2;
+        int depth = size / 3;
+        int height = size;
+
+        int[] topX = {centerX, centerX + half, centerX, centerX - half};
+        int[] topYPoints = {topY - depth, topY, topY + depth, topY};
+        int[] frontX = {centerX - half, centerX, centerX, centerX - half};
+        int[] frontY = {topY, topY + depth, topY + depth + height, topY + height};
+        int[] sideX = {centerX, centerX + half, centerX + half, centerX};
+        int[] sideY = {topY + depth, topY, topY + height, topY + depth + height};
+
+        fillPolygon(mapState, sideX, sideY, side);
+        fillPolygon(mapState, frontX, frontY, front);
+        fillPolygon(mapState, topX, topYPoints, top);
+        drawPolygon(mapState, sideX, sideY, darkCrack);
+        drawPolygon(mapState, frontX, frontY, darkCrack);
+        drawPolygon(mapState, topX, topYPoints, darkCrack);
+
+        int seed = centerX * 31 + topY * 17 + size;
+        for (int i = 0; i < 18; i++) {
+            int x = centerX - half + 2 + Math.floorMod(seed + i * 11, size - 3);
+            int y = topY - depth + 2 + Math.floorMod(seed / 3 + i * 7, height + depth - 4);
+            byte c = i % 5 == 0 ? brightCrack : (i % 2 == 0 ? crack : darkCrack);
+            if (i % 3 == 0) {
+                drawLine(mapState, x, y, x + 2, y, c);
+            } else {
+                drawLine(mapState, x, y, x, y + 3, c);
+            }
+        }
+    }
+
+    private static byte color(MapColor color, MapColor.Brightness brightness) {
+        return color.getRenderColorByte(brightness);
+    }
+
+    private static void fillRect(MapState mapState, int minX, int minY, int maxX, int maxY, byte color) {
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                setPixel(mapState, x, y, color);
+            }
+        }
+    }
+
+    private static void fillPolygon(MapState mapState, int[] xs, int[] ys, byte color) {
+        int minY = 127;
+        int maxY = 0;
+        for (int y : ys) {
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+        }
+        for (int y = minY; y <= maxY; y++) {
+            int intersections = 0;
+            int[] nodes = new int[xs.length];
+            for (int i = 0, j = xs.length - 1; i < xs.length; j = i++) {
+                if ((ys[i] < y && ys[j] >= y) || (ys[j] < y && ys[i] >= y)) {
+                    nodes[intersections++] = xs[i] + (y - ys[i]) * (xs[j] - xs[i]) / (ys[j] - ys[i]);
+                }
+            }
+            for (int i = 1; i < intersections; i++) {
+                int node = nodes[i];
+                int j = i - 1;
+                while (j >= 0 && nodes[j] > node) {
+                    nodes[j + 1] = nodes[j];
+                    j--;
+                }
+                nodes[j + 1] = node;
+            }
+            for (int i = 0; i + 1 < intersections; i += 2) {
+                drawLine(mapState, nodes[i], y, nodes[i + 1], y, color);
+            }
+        }
+    }
+
+    private static void drawPolygon(MapState mapState, int[] xs, int[] ys, byte color) {
+        for (int i = 0; i < xs.length; i++) {
+            int next = (i + 1) % xs.length;
+            drawLine(mapState, xs[i], ys[i], xs[next], ys[next], color);
+        }
+    }
+
+    private static void drawLine(MapState mapState, int x1, int y1, int x2, int y2, byte color) {
+        int dx = Math.abs(x2 - x1);
+        int dy = Math.abs(y2 - y1);
+        int sx = x1 < x2 ? 1 : -1;
+        int sy = y1 < y2 ? 1 : -1;
+        int error = dx - dy;
+        while (true) {
+            setPixel(mapState, x1, y1, color);
+            if (x1 == x2 && y1 == y2) break;
+            int e2 = error * 2;
+            if (e2 > -dy) {
+                error -= dy;
+                x1 += sx;
+            }
+            if (e2 < dx) {
+                error += dx;
+                y1 += sy;
+            }
+        }
+    }
+
+    private static void setPixel(MapState mapState, int x, int y, byte color) {
+        if (x >= 0 && x < 128 && y >= 0 && y < 128) {
+            mapState.putColor(x, y, color);
+        }
     }
 
     private static ItemStack createGuideBook() {
