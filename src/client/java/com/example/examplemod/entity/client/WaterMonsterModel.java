@@ -83,22 +83,22 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
 
         root.addChild("human_head",
                 ModelPartBuilder.create().uv(0, 0).cuboid(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F),
-                ModelTransform.origin(0.0F, 4.0F, 0.0F));
+                ModelTransform.origin(0.0F, 0.0F, 0.0F));
         root.addChild("human_body",
                 ModelPartBuilder.create().uv(16, 16).cuboid(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F),
-                ModelTransform.origin(0.0F, 4.0F, 0.0F));
+                ModelTransform.origin(0.0F, 0.0F, 0.0F));
         root.addChild("human_left_arm",
                 ModelPartBuilder.create().uv(32, 48).cuboid(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
-                ModelTransform.origin(5.0F, 6.0F, 0.0F));
+                ModelTransform.origin(5.0F, 2.0F, 0.0F));
         root.addChild("human_right_arm",
                 ModelPartBuilder.create().uv(40, 16).mirrored().cuboid(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
-                ModelTransform.origin(-5.0F, 6.0F, 0.0F));
+                ModelTransform.origin(-5.0F, 2.0F, 0.0F));
         root.addChild("human_left_leg",
                 ModelPartBuilder.create().uv(16, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
-                ModelTransform.origin(2.0F, 16.0F, 0.0F));
+                ModelTransform.origin(2.0F, 12.0F, 0.0F));
         root.addChild("human_right_leg",
                 ModelPartBuilder.create().uv(0, 16).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
-                ModelTransform.origin(-2.0F, 16.0F, 0.0F));
+                ModelTransform.origin(-2.0F, 12.0F, 0.0F));
 
         return TexturedModelData.of(data, 64, 64);
     }
