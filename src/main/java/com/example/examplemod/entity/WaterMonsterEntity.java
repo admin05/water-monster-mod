@@ -35,6 +35,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
 
@@ -94,6 +95,11 @@ public class WaterMonsterEntity extends HostileEntity {
     @Override
     public void tick() {
         super.tick();
+        if (!this.getEntityWorld().isClient() && this.getEntityWorld().getDifficulty() == Difficulty.PEACEFUL) {
+            this.discard();
+            return;
+        }
+
         syncAltarHealthPenalty();
         restoreProtectedAltarBlocks();
         int phase = getCombatPhase();

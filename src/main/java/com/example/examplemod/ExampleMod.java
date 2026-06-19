@@ -36,6 +36,7 @@ import net.minecraft.util.Rarity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,11 @@ public class ExampleMod implements ModInitializer {
         }
 
         if (world instanceof ServerWorld serverWorld) {
+            if (serverWorld.getDifficulty() == Difficulty.PEACEFUL) {
+                player.sendMessage(Text.literal("和平模式下无法召唤him-镜像怪物"), true);
+                player.swingHand(hand);
+                return ActionResult.SUCCESS;
+            }
             if (!hasPendingSummon(serverWorld, topCryingObsidian)) {
                 PENDING_WATER_MONSTER_SUMMONS.add(new PendingWaterMonsterSummon(
                         serverWorld,
@@ -173,6 +179,11 @@ public class ExampleMod implements ModInitializer {
                 continue;
             }
 
+            if (world.getDifficulty() == Difficulty.PEACEFUL) {
+                iterator.remove();
+                continue;
+            }
+
             if (!summon.isAltarStillValid(world)) {
                 iterator.remove();
                 continue;
@@ -186,6 +197,10 @@ public class ExampleMod implements ModInitializer {
     }
 
     private static void spawnWaterMonsterFromRitual(ServerWorld world, PendingWaterMonsterSummon summon) {
+        if (world.getDifficulty() == Difficulty.PEACEFUL) {
+            return;
+        }
+
         BlockPos topCryingObsidian = summon.topCryingObsidian();
         emitRitualCompletionBurst(world, topCryingObsidian);
 
