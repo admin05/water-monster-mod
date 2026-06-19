@@ -18,6 +18,7 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
     private final ModelPart tentacleSideLeft;
     private final ModelPart tentacleSideRight;
     private final ModelPart humanHead;
+    private final ModelPart humanHat;
     private final ModelPart humanBody;
     private final ModelPart humanLeftArm;
     private final ModelPart humanRightArm;
@@ -37,6 +38,7 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
         this.tentacleSideLeft = root.getChild("tentacle_side_left");
         this.tentacleSideRight = root.getChild("tentacle_side_right");
         this.humanHead = root.getChild(EntityModelPartNames.HEAD);
+        this.humanHat = root.getChild(EntityModelPartNames.HAT);
         this.humanBody = root.getChild(EntityModelPartNames.BODY);
         this.humanLeftArm = root.getChild(EntityModelPartNames.LEFT_ARM);
         this.humanRightArm = root.getChild(EntityModelPartNames.RIGHT_ARM);
@@ -115,6 +117,9 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
         if (state.humanoidForm) {
             humanHead.pitch = state.pitch * 0.017453292F;
             humanHead.yaw = state.relativeHeadYaw * 0.017453292F;
+            humanHat.pitch = humanHead.pitch;
+            humanHat.yaw = humanHead.yaw;
+            humanHat.roll = humanHead.roll;
             humanBody.pitch = 0.0F;
             humanBody.yaw = 0.0F;
             humanBody.roll = 0.0F;
@@ -160,6 +165,7 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
 
     private void setHumanVisible(boolean visible) {
         humanHead.visible = visible;
+        humanHat.visible = visible;
         humanBody.visible = visible;
         humanLeftArm.visible = visible;
         humanRightArm.visible = visible;
