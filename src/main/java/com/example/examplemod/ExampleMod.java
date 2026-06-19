@@ -1,18 +1,10 @@
 package com.example.examplemod;
 
 import com.example.examplemod.entity.NoBlockDamageTntEntity;
-import com.example.examplemod.entity.ShadowGuideEntity;
 import com.example.examplemod.entity.WaterMonsterAltarProtection;
 import com.example.examplemod.entity.WaterMonsterEntity;
 import com.example.examplemod.item.TntFishingRodItem;
-import com.example.examplemod.mixin.SpawnRestrictionInvoker;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.MapIdComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.WrittenBookContentComponent;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
-import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -21,29 +13,21 @@ import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.MapColor;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnLocationTypes;
 import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.map.MapState;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -52,11 +36,6 @@ import net.minecraft.util.Rarity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,25 +43,16 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 public class ExampleMod implements ModInitializer {
     public static final String MOD_ID = "examplemod";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static final String WATER_MONSTER_GUIDE_SEEN_TAG = MOD_ID + ".water_monster_guide_seen";
-    public static final String WATER_MONSTER_SUMMONED_TAG = MOD_ID + ".water_monster_summoned";
     private static final int WATER_MONSTER_SUMMON_RITUAL_TICKS = 160;
     private static final int WATER_MONSTER_SUMMON_SOUL_SOUND_TICK = 64;
     private static final int WATER_MONSTER_SUMMON_PORTAL_SOUND_TICK = 124;
     private static final int WATER_MONSTER_ALTAR_BLOCKS = 6;
     private static final double WATER_MONSTER_SKY_CIRCLE_HEIGHT = 14.0;
     private static final double FULL_CIRCLE = Math.PI * 2.0;
-    private static final int SHADOW_GUIDE_CHECK_INTERVAL = 20 * 10;
-    private static final int SHADOW_GUIDE_SPAWN_ATTEMPTS = 28;
-    private static final int SHADOW_GUIDE_NATURAL_SPAWN_WEIGHT = 12;
-    private static final int SHADOW_GUIDE_NATURAL_SPAWN_MIN_GROUP = 1;
-    private static final int SHADOW_GUIDE_NATURAL_SPAWN_MAX_GROUP = 1;
-    private static final double SHADOW_GUIDE_NATURAL_TARGET_RANGE = 32.0;
 
     public static final Item EXAMPLE_ITEM = new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "example_item"))));
     public static final Item TNT_FISHING_ROD = new TntFishingRodItem(new Item.Settings()
@@ -95,8 +65,6 @@ public class ExampleMod implements ModInitializer {
 
     private static final RegistryKey<EntityType<?>> WATER_MONSTER_KEY = RegistryKey.of(
             RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "water_monster"));
-    private static final RegistryKey<EntityType<?>> SHADOW_GUIDE_KEY = RegistryKey.of(
-            RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "shadow_guide"));
     private static final RegistryKey<EntityType<?>> NO_BLOCK_DAMAGE_TNT_KEY = RegistryKey.of(
             RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, "no_block_damage_tnt"));
 
@@ -108,17 +76,6 @@ public class ExampleMod implements ModInitializer {
                     .maxTrackingRange(10)
                     .trackingTickInterval(3)
                     .build(WATER_MONSTER_KEY)
-    );
-
-    public static final EntityType<ShadowGuideEntity> SHADOW_GUIDE = Registry.register(
-            Registries.ENTITY_TYPE,
-            SHADOW_GUIDE_KEY,
-            EntityType.Builder.create(ShadowGuideEntity::new, SpawnGroup.MONSTER)
-                    .dimensions(0.6f, 1.8f)
-                    .maxTrackingRange(12)
-                    .trackingTickInterval(3)
-                    .disableSaving()
-                    .build(SHADOW_GUIDE_KEY)
     );
 
     public static final EntityType<NoBlockDamageTntEntity> NO_BLOCK_DAMAGE_TNT = Registry.register(
@@ -163,51 +120,12 @@ public class ExampleMod implements ModInitializer {
         });
 
         FabricDefaultAttributeRegistry.register(WATER_MONSTER, WaterMonsterEntity.createAttributes());
-        FabricDefaultAttributeRegistry.register(SHADOW_GUIDE, ShadowGuideEntity.createAttributes());
-        registerShadowGuideNaturalSpawning();
         UseBlockCallback.EVENT.register(ExampleMod::trySummonWaterMonster);
         ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickPendingWaterMonsterSummons);
-        ServerTickEvents.END_WORLD_TICK.register(ExampleMod::tickShadowGuideSpawns);
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) ->
                 WaterMonsterAltarProtection.onPlayerBrokenAltarBlock(world, player, pos));
 
         LOGGER.info("ExampleMod initialized successfully!");
-    }
-
-    private static void registerShadowGuideNaturalSpawning() {
-        BiomeModifications.addSpawn(
-                BiomeSelectors.foundInOverworld(),
-                SpawnGroup.MONSTER,
-                SHADOW_GUIDE,
-                SHADOW_GUIDE_NATURAL_SPAWN_WEIGHT,
-                SHADOW_GUIDE_NATURAL_SPAWN_MIN_GROUP,
-                SHADOW_GUIDE_NATURAL_SPAWN_MAX_GROUP
-        );
-        SpawnRestrictionInvoker.examplemod$register(
-                SHADOW_GUIDE,
-                SpawnLocationTypes.ON_GROUND,
-                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
-                ExampleMod::canShadowGuideSpawnNaturally
-        );
-    }
-
-    private static boolean canShadowGuideSpawnNaturally(EntityType<ShadowGuideEntity> type, ServerWorldAccess world, SpawnReason reason, BlockPos pos, Random random) {
-        if (reason != SpawnReason.NATURAL && reason != SpawnReason.CHUNK_GENERATION) return false;
-        ServerWorld serverWorld = world.toServerWorld();
-        return HostileEntity.canSpawnInDark(type, world, reason, pos, random)
-                && canShadowGuideStandAt(serverWorld, pos)
-                && hasEligibleShadowGuideTarget(serverWorld, pos);
-    }
-
-    private static boolean hasEligibleShadowGuideTarget(ServerWorld world, BlockPos pos) {
-        double rangeSquared = SHADOW_GUIDE_NATURAL_TARGET_RANGE * SHADOW_GUIDE_NATURAL_TARGET_RANGE;
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (!shouldSpawnShadowGuideFor(player)) continue;
-            if (player.squaredDistanceTo(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= rangeSquared) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static ActionResult trySummonWaterMonster(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
@@ -223,7 +141,6 @@ public class ExampleMod implements ModInitializer {
 
         if (world instanceof ServerWorld serverWorld) {
             if (!hasPendingSummon(serverWorld, topCryingObsidian)) {
-                player.addCommandTag(WATER_MONSTER_SUMMONED_TAG);
                 PENDING_WATER_MONSTER_SUMMONS.add(new PendingWaterMonsterSummon(
                         serverWorld,
                         topCryingObsidian.toImmutable(),
@@ -279,288 +196,6 @@ public class ExampleMod implements ModInitializer {
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.3f, 0.7f);
         world.playSound(null, topCryingObsidian, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.HOSTILE, 1.4f, 0.8f);
         world.playSound(null, topCryingObsidian, SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.HOSTILE, 1.0f, 0.55f);
-    }
-
-    private static void tickShadowGuideSpawns(ServerWorld world) {
-        if (world.getTime() % SHADOW_GUIDE_CHECK_INTERVAL != 0) return;
-
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (!shouldSpawnShadowGuideFor(player)) continue;
-            findShadowGuideSpawnPos(world, player).ifPresent(pos -> spawnShadowGuide(world, player, pos));
-        }
-    }
-
-    private static boolean shouldSpawnShadowGuideFor(ServerPlayerEntity player) {
-        if (!player.isAlive() || player.isCreative() || player.isSpectator()) return false;
-        if (player.getCommandTags().contains(WATER_MONSTER_SUMMONED_TAG)) return false;
-        if (hasShadowGuideFor(player)) return false;
-        return player.age > 20 * 20;
-    }
-
-    private static boolean hasShadowGuideFor(ServerPlayerEntity player) {
-        for (ShadowGuideEntity guide : player.getEntityWorld().getEntitiesByClass(
-                ShadowGuideEntity.class,
-                player.getBoundingBox().expand(48.0),
-                guide -> guide.isGuiding(player)
-        )) {
-            return true;
-        }
-        return false;
-    }
-
-    private static Optional<BlockPos> findShadowGuideSpawnPos(ServerWorld world, ServerPlayerEntity player) {
-        Vec3d look = player.getRotationVec(1.0f);
-        Vec3d behind = new Vec3d(-look.x, 0.0, -look.z);
-        if (behind.lengthSquared() < 0.001) {
-            behind = new Vec3d(1.0, 0.0, 0.0);
-        }
-        behind = behind.normalize();
-
-        for (int attempt = 0; attempt < SHADOW_GUIDE_SPAWN_ATTEMPTS; attempt++) {
-            double distance = 8.0 + world.random.nextDouble() * 6.0;
-            double side = (world.random.nextDouble() - 0.5) * 8.0;
-            Vec3d sideVector = new Vec3d(-behind.z, 0.0, behind.x);
-            Vec3d candidate = entityPos(player).add(behind.multiply(distance)).add(sideVector.multiply(side));
-            BlockPos base = BlockPos.ofFloored(candidate.x, player.getY(), candidate.z);
-            BlockPos pos = findNearbyStandingPos(world, base);
-            if (pos != null && isDarkEnoughForShadowGuide(world, pos)) {
-                return Optional.of(pos);
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static BlockPos findNearbyStandingPos(ServerWorld world, BlockPos base) {
-        int minY = Math.max(world.getBottomY() + 1, base.getY() - 5);
-        int maxY = Math.min(world.getBottomY() + world.getHeight() - 2, base.getY() + 5);
-        for (int y = maxY; y >= minY; y--) {
-            BlockPos pos = new BlockPos(base.getX(), y, base.getZ());
-            if (canShadowGuideStandAt(world, pos)) {
-                return pos;
-            }
-        }
-        return null;
-    }
-
-    private static boolean canShadowGuideStandAt(ServerWorld world, BlockPos pos) {
-        return world.getBlockState(pos.down()).isSolidBlock(world, pos.down())
-                && world.getBlockState(pos).isAir()
-                && world.getBlockState(pos.up()).isAir();
-    }
-
-    private static boolean isDarkEnoughForShadowGuide(ServerWorld world, BlockPos pos) {
-        return world.getLightLevel(pos) <= 11;
-    }
-
-    private static void spawnShadowGuide(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
-        ShadowGuideEntity guide = new ShadowGuideEntity(SHADOW_GUIDE, world);
-        guide.setTargetPlayer(player);
-        double x = pos.getX() + 0.5;
-        double y = pos.getY();
-        double z = pos.getZ() + 0.5;
-        float yaw = (float) MathHelper.wrapDegrees(Math.toDegrees(Math.atan2(player.getZ() - z, player.getX() - x)) - 90.0);
-        guide.refreshPositionAndAngles(x, y, z, yaw, 0.0f);
-        world.spawnEntity(guide);
-        world.playSound(null, pos, SoundEvents.AMBIENT_CAVE.value(), SoundCategory.HOSTILE, 0.55f, 0.7f);
-    }
-
-    private static Vec3d entityPos(net.minecraft.entity.Entity entity) {
-        return new Vec3d(entity.getX(), entity.getY(), entity.getZ());
-    }
-
-    public static void giveWaterMonsterGuideGifts(ServerPlayerEntity player) {
-        if (player.getCommandTags().contains(WATER_MONSTER_GUIDE_SEEN_TAG)) return;
-
-        player.addCommandTag(WATER_MONSTER_GUIDE_SEEN_TAG);
-        giveOrDrop(player, createAltarMap((ServerWorld) player.getEntityWorld()));
-        giveOrDrop(player, createGuideBook());
-        player.sendMessage(Text.literal("黑影把两样东西塞进你的手中，随后消失在暗处。"), false);
-        player.getEntityWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_WARDEN_NEARBY_CLOSEST, SoundCategory.HOSTILE, 0.8f, 0.65f);
-    }
-
-    private static void giveOrDrop(ServerPlayerEntity player, ItemStack stack) {
-        if (!player.giveItemStack(stack)) {
-            player.dropItem(stack, false);
-        }
-    }
-
-    private static ItemStack createAltarMap(ServerWorld world) {
-        ItemStack map = new ItemStack(Items.FILLED_MAP);
-        MapIdComponent mapId = world.increaseAndGetMapId();
-        MapState mapState = MapState.of((byte) 0, true, world.getRegistryKey());
-        drawWaterMonsterAltarMap(mapState);
-        mapState.markDirty();
-        world.putMapState(mapId, mapState);
-
-        map.set(DataComponentTypes.MAP_ID, mapId);
-        map.set(DataComponentTypes.ITEM_NAME, Text.literal("潮湿的祭坛地图"));
-        map.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("地图上画着一座两层祭坛："),
-                Text.literal("第一层：哭泣黑曜石摆成十字，共 5 块。"),
-                Text.literal("第二层：中心上方再放 1 块哭泣黑曜石。"),
-                Text.literal("主手空手右键最上方那块。")
-        )));
-        return map;
-    }
-
-    private static void drawWaterMonsterAltarMap(MapState mapState) {
-        byte sky = color(MapColor.LIGHT_BLUE, MapColor.Brightness.HIGH);
-        byte horizon = color(MapColor.PALE_GREEN, MapColor.Brightness.NORMAL);
-        byte grass = color(MapColor.DARK_GREEN, MapColor.Brightness.NORMAL);
-        byte grassDark = color(MapColor.GREEN, MapColor.Brightness.LOW);
-        byte black = color(MapColor.BLACK, MapColor.Brightness.NORMAL);
-        byte blackDark = color(MapColor.BLACK, MapColor.Brightness.LOWEST);
-        byte gray = color(MapColor.DEEPSLATE_GRAY, MapColor.Brightness.LOW);
-        byte purple = color(MapColor.PURPLE, MapColor.Brightness.NORMAL);
-        byte purpleBright = color(MapColor.PURPLE, MapColor.Brightness.HIGH);
-        byte purpleDark = color(MapColor.TERRACOTTA_PURPLE, MapColor.Brightness.NORMAL);
-        byte glint = color(MapColor.WHITE, MapColor.Brightness.HIGH);
-
-        fillRect(mapState, 0, 0, 127, 45, sky);
-        fillRect(mapState, 0, 46, 127, 51, horizon);
-        fillRect(mapState, 0, 52, 127, 127, grass);
-        for (int y = 55; y < 128; y += 6) {
-            for (int x = (y / 2) % 8; x < 128; x += 9) {
-                setPixel(mapState, x, y, grassDark);
-            }
-        }
-
-        drawBlock(mapState, 64, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
-        drawBlock(mapState, 36, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
-        drawBlock(mapState, 92, 82, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
-        drawBlock(mapState, 64, 63, 28, black, blackDark, gray, purple, purpleBright, purpleDark);
-        drawBlock(mapState, 64, 101, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
-        drawBlock(mapState, 64, 50, 30, black, blackDark, gray, purple, purpleBright, purpleDark);
-
-        drawLine(mapState, 64, 73, 64, 91, glint);
-        drawLine(mapState, 55, 82, 73, 82, glint);
-        setPixel(mapState, 63, 81, glint);
-        setPixel(mapState, 65, 83, glint);
-    }
-
-    private static void drawBlock(MapState mapState, int centerX, int topY, int size, byte top, byte front, byte side, byte crack, byte brightCrack, byte darkCrack) {
-        int half = size / 2;
-        int depth = size / 3;
-        int height = size;
-
-        int[] topX = {centerX, centerX + half, centerX, centerX - half};
-        int[] topYPoints = {topY - depth, topY, topY + depth, topY};
-        int[] frontX = {centerX - half, centerX, centerX, centerX - half};
-        int[] frontY = {topY, topY + depth, topY + depth + height, topY + height};
-        int[] sideX = {centerX, centerX + half, centerX + half, centerX};
-        int[] sideY = {topY + depth, topY, topY + height, topY + depth + height};
-
-        fillPolygon(mapState, sideX, sideY, side);
-        fillPolygon(mapState, frontX, frontY, front);
-        fillPolygon(mapState, topX, topYPoints, top);
-        drawPolygon(mapState, sideX, sideY, darkCrack);
-        drawPolygon(mapState, frontX, frontY, darkCrack);
-        drawPolygon(mapState, topX, topYPoints, darkCrack);
-
-        int seed = centerX * 31 + topY * 17 + size;
-        for (int i = 0; i < 18; i++) {
-            int x = centerX - half + 2 + Math.floorMod(seed + i * 11, size - 3);
-            int y = topY - depth + 2 + Math.floorMod(seed / 3 + i * 7, height + depth - 4);
-            byte c = i % 5 == 0 ? brightCrack : (i % 2 == 0 ? crack : darkCrack);
-            if (i % 3 == 0) {
-                drawLine(mapState, x, y, x + 2, y, c);
-            } else {
-                drawLine(mapState, x, y, x, y + 3, c);
-            }
-        }
-    }
-
-    private static byte color(MapColor color, MapColor.Brightness brightness) {
-        return color.getRenderColorByte(brightness);
-    }
-
-    private static void fillRect(MapState mapState, int minX, int minY, int maxX, int maxY, byte color) {
-        for (int y = minY; y <= maxY; y++) {
-            for (int x = minX; x <= maxX; x++) {
-                setPixel(mapState, x, y, color);
-            }
-        }
-    }
-
-    private static void fillPolygon(MapState mapState, int[] xs, int[] ys, byte color) {
-        int minY = 127;
-        int maxY = 0;
-        for (int y : ys) {
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-        }
-        for (int y = minY; y <= maxY; y++) {
-            int intersections = 0;
-            int[] nodes = new int[xs.length];
-            for (int i = 0, j = xs.length - 1; i < xs.length; j = i++) {
-                if ((ys[i] < y && ys[j] >= y) || (ys[j] < y && ys[i] >= y)) {
-                    nodes[intersections++] = xs[i] + (y - ys[i]) * (xs[j] - xs[i]) / (ys[j] - ys[i]);
-                }
-            }
-            for (int i = 1; i < intersections; i++) {
-                int node = nodes[i];
-                int j = i - 1;
-                while (j >= 0 && nodes[j] > node) {
-                    nodes[j + 1] = nodes[j];
-                    j--;
-                }
-                nodes[j + 1] = node;
-            }
-            for (int i = 0; i + 1 < intersections; i += 2) {
-                drawLine(mapState, nodes[i], y, nodes[i + 1], y, color);
-            }
-        }
-    }
-
-    private static void drawPolygon(MapState mapState, int[] xs, int[] ys, byte color) {
-        for (int i = 0; i < xs.length; i++) {
-            int next = (i + 1) % xs.length;
-            drawLine(mapState, xs[i], ys[i], xs[next], ys[next], color);
-        }
-    }
-
-    private static void drawLine(MapState mapState, int x1, int y1, int x2, int y2, byte color) {
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int error = dx - dy;
-        while (true) {
-            setPixel(mapState, x1, y1, color);
-            if (x1 == x2 && y1 == y2) break;
-            int e2 = error * 2;
-            if (e2 > -dy) {
-                error -= dy;
-                x1 += sx;
-            }
-            if (e2 < dx) {
-                error += dx;
-                y1 += sy;
-            }
-        }
-    }
-
-    private static void setPixel(MapState mapState, int x, int y, byte color) {
-        if (x >= 0 && x < 128 && y >= 0 && y < 128) {
-            mapState.putColor(x, y, color);
-        }
-    }
-
-    private static ItemStack createGuideBook() {
-        ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
-        book.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, new WrittenBookContentComponent(
-                RawFilteredPair.of("潮下来的路"),
-                "无名的湿手",
-                0,
-                List.of(
-                        RawFilteredPair.of(Text.literal("别在太阳底下读完这本书。\n\n我在岸边看见过它的影子：水面没有风，却自己裂开，像有什么东西从下面抬头。")),
-                        RawFilteredPair.of(Text.literal("相片是真的。\n\n第一层五块哭泣黑曜石，摆成十字。\n第二层一块，压在中心上方。\n\n不要点火，不要献血，只用空手触碰最上方。")),
-                        RawFilteredPair.of(Text.literal("如果天空出现淡蓝色的圆，不要低头。\n\n那些光不是给你看的，是给水下的东西认路用的。")),
-                        RawFilteredPair.of(Text.literal("它第一次来时会像你。\n\n后来它会学会你。\n\n最后，它不再需要像任何人。"))
-                ),
-                true
-        ));
-        return book;
     }
 
     private static List<BlockPos> getWaterMonsterAltarBlocks(World world, BlockPos topCryingObsidian) {
