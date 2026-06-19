@@ -72,7 +72,7 @@ public class ExampleMod implements ModInitializer {
             Registries.ENTITY_TYPE,
             WATER_MONSTER_KEY,
             EntityType.Builder.create(WaterMonsterEntity::new, SpawnGroup.MONSTER)
-                    .dimensions(0.8f, 1.8f)
+                    .dimensions(0.6f, 1.8f)
                     .maxTrackingRange(10)
                     .trackingTickInterval(3)
                     .build(WATER_MONSTER_KEY)
