@@ -1,9 +1,9 @@
 package com.example.examplemod.entity.client;
 
 import com.example.examplemod.entity.WaterMonsterEntity;
-import net.minecraft.client.render.entity.BipedEntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
+import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
 import net.minecraft.util.Identifier;
 
 public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, WaterMonsterRenderState, WaterMonsterModel> {
@@ -19,7 +19,6 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     public WaterMonsterRenderer(EntityRendererFactory.Context context) {
         super(context, new WaterMonsterModel(context.getPart(ExampleModEntityRenderer.WATER_MONSTER_LAYER)), 0.5F);
         this.addFeature(new WaterMonsterHeldItemFeatureRenderer(this));
-        this.addFeature(new WaterMonsterArmorFeatureRenderer(this, context.getEquipmentRenderer()));
     }
 
     @Override
@@ -30,7 +29,7 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     @Override
     public void updateRenderState(WaterMonsterEntity entity, WaterMonsterRenderState state, float tickDelta) {
         super.updateRenderState(entity, state, tickDelta);
-        BipedEntityRenderer.updateBipedRenderState(entity, state, tickDelta, this.itemModelResolver);
+        ArmedEntityRenderState.updateRenderState(entity, state, this.itemModelResolver, tickDelta);
         state.randomPlayerSkin = entity.shouldUseRandomPlayerSkin();
         state.phaseThreeSkin = entity.shouldUsePhaseThreeSkin();
         state.criticalSkinFlicker = entity.shouldFlickerCriticalSkin();

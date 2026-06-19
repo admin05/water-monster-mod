@@ -1,12 +1,12 @@
 package com.example.examplemod.entity.client;
 
 import net.minecraft.client.model.*;
-import net.minecraft.client.render.entity.model.BipedEntityModel;
-import net.minecraft.client.render.entity.model.EntityModelPartNames;
+import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.client.render.entity.model.ModelWithArms;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Arm;
 
-public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState> {
+public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> implements ModelWithArms<WaterMonsterRenderState> {
     private final ModelPart squidMantle;
     private final ModelPart mouth;
     private final ModelPart jawLeft;
@@ -18,7 +18,6 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
     private final ModelPart tentacleSideLeft;
     private final ModelPart tentacleSideRight;
     private final ModelPart humanHead;
-    private final ModelPart humanHat;
     private final ModelPart humanBody;
     private final ModelPart humanLeftArm;
     private final ModelPart humanRightArm;
@@ -37,13 +36,12 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
         this.tentacleBackRight = root.getChild("tentacle_back_right");
         this.tentacleSideLeft = root.getChild("tentacle_side_left");
         this.tentacleSideRight = root.getChild("tentacle_side_right");
-        this.humanHead = root.getChild(EntityModelPartNames.HEAD);
-        this.humanHat = root.getChild(EntityModelPartNames.HAT);
-        this.humanBody = root.getChild(EntityModelPartNames.BODY);
-        this.humanLeftArm = root.getChild(EntityModelPartNames.LEFT_ARM);
-        this.humanRightArm = root.getChild(EntityModelPartNames.RIGHT_ARM);
-        this.humanLeftLeg = root.getChild(EntityModelPartNames.LEFT_LEG);
-        this.humanRightLeg = root.getChild(EntityModelPartNames.RIGHT_LEG);
+        this.humanHead = root.getChild("human_head");
+        this.humanBody = root.getChild("human_body");
+        this.humanLeftArm = root.getChild("human_left_arm");
+        this.humanRightArm = root.getChild("human_right_arm");
+        this.humanLeftLeg = root.getChild("human_left_leg");
+        this.humanRightLeg = root.getChild("human_right_leg");
     }
 
     public static TexturedModelData getTexturedModelData() {
@@ -83,25 +81,22 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
                 ModelPartBuilder.create().uv(40, 32).cuboid(-1.0F, 0.0F, -1.0F, 2.0F, 11.0F, 2.0F),
                 ModelTransform.origin(5.0F, 17.0F, 0.0F));
 
-        root.addChild(EntityModelPartNames.HEAD,
+        root.addChild("human_head",
                 ModelPartBuilder.create().uv(0, 0).cuboid(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F),
                 ModelTransform.origin(0.0F, 0.0F, 0.0F));
-        root.addChild(EntityModelPartNames.HAT,
-                ModelPartBuilder.create().uv(32, 0).cuboid(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, new Dilation(0.5F)),
-                ModelTransform.origin(0.0F, 0.0F, 0.0F));
-        root.addChild(EntityModelPartNames.BODY,
+        root.addChild("human_body",
                 ModelPartBuilder.create().uv(16, 16).cuboid(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F),
                 ModelTransform.origin(0.0F, 0.0F, 0.0F));
-        root.addChild(EntityModelPartNames.LEFT_ARM,
+        root.addChild("human_left_arm",
                 ModelPartBuilder.create().uv(32, 48).cuboid(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(5.0F, 2.0F, 0.0F));
-        root.addChild(EntityModelPartNames.RIGHT_ARM,
+        root.addChild("human_right_arm",
                 ModelPartBuilder.create().uv(40, 16).mirrored().cuboid(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(-5.0F, 2.0F, 0.0F));
-        root.addChild(EntityModelPartNames.LEFT_LEG,
+        root.addChild("human_left_leg",
                 ModelPartBuilder.create().uv(16, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(2.0F, 12.0F, 0.0F));
-        root.addChild(EntityModelPartNames.RIGHT_LEG,
+        root.addChild("human_right_leg",
                 ModelPartBuilder.create().uv(0, 16).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(-2.0F, 12.0F, 0.0F));
 
@@ -117,9 +112,6 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
         if (state.humanoidForm) {
             humanHead.pitch = state.pitch * 0.017453292F;
             humanHead.yaw = state.relativeHeadYaw * 0.017453292F;
-            humanHat.pitch = humanHead.pitch;
-            humanHat.yaw = humanHead.yaw;
-            humanHat.roll = humanHead.roll;
             humanBody.pitch = 0.0F;
             humanBody.yaw = 0.0F;
             humanBody.roll = 0.0F;
@@ -165,7 +157,6 @@ public class WaterMonsterModel extends BipedEntityModel<WaterMonsterRenderState>
 
     private void setHumanVisible(boolean visible) {
         humanHead.visible = visible;
-        humanHat.visible = visible;
         humanBody.visible = visible;
         humanLeftArm.visible = visible;
         humanRightArm.visible = visible;
