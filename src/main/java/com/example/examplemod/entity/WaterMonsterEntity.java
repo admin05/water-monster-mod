@@ -63,7 +63,7 @@ public class WaterMonsterEntity extends HostileEntity {
     private final List<ItemStack> copiedInventory = new ArrayList<>();
     private final List<BlockPos> altarBlocks = new ArrayList<>();
     private final List<BlockPos> brokenAltarBlocks = new ArrayList<>();
-    private final ServerBossBar bossBar = new ServerBossBar(Text.literal("Water Monster"), BossBar.Color.BLUE, BossBar.Style.NOTCHED_10);
+    private final ServerBossBar bossBar = new ServerBossBar(Text.translatable("entity.examplemod.water_monster"), BossBar.Color.BLUE, BossBar.Style.NOTCHED_10);
     private int lastPhase = PHASE_ONE;
     private int mimicActionCooldown;
     private int smartActionCooldown;
@@ -220,7 +220,7 @@ public class WaterMonsterEntity extends HostileEntity {
 
     private void updateBossBar(int phase) {
         bossBar.setPercent(Math.max(0.0f, Math.min(1.0f, this.getHealth() / this.getMaxHealth())));
-        bossBar.setName(Text.literal("Water Monster - Phase " + phase));
+        bossBar.setName(Text.translatable("entity.examplemod.water_monster.phase", phase));
         bossBar.setColor(switch (phase) {
             case PHASE_ONE -> BossBar.Color.BLUE;
             case PHASE_TWO -> BossBar.Color.YELLOW;

@@ -1,6 +1,6 @@
 {
-  "entity.examplemod.water_monster": "Herobrine",
-  "entity.examplemod.water_monster.phase": "Herobrine - Phase %s",
+  "entity.examplemod.water_monster": "him-镜像怪物",
+  "entity.examplemod.water_monster.phase": "him-镜像怪物 - 第%s阶段",
   "itemGroup.examplemod.example_group": "Example Mod",
   "item.examplemod.example_item": "Example Item",
   "item.examplemod.tnt_fishing_rod": "TNT Fishing Rod"
