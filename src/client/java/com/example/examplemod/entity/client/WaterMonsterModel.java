@@ -23,6 +23,14 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
     private final ModelPart humanRightArm;
     private final ModelPart humanLeftLeg;
     private final ModelPart humanRightLeg;
+    private final ModelPart armorHelmet;
+    private final ModelPart armorBody;
+    private final ModelPart armorLeftArm;
+    private final ModelPart armorRightArm;
+    private final ModelPart armorLeftLeg;
+    private final ModelPart armorRightLeg;
+    private final ModelPart armorLeftBoot;
+    private final ModelPart armorRightBoot;
 
     public WaterMonsterModel(ModelPart root) {
         super(root);
@@ -42,6 +50,14 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
         this.humanRightArm = root.getChild("human_right_arm");
         this.humanLeftLeg = root.getChild("human_left_leg");
         this.humanRightLeg = root.getChild("human_right_leg");
+        this.armorHelmet = root.getChild("armor_helmet");
+        this.armorBody = root.getChild("armor_body");
+        this.armorLeftArm = root.getChild("armor_left_arm");
+        this.armorRightArm = root.getChild("armor_right_arm");
+        this.armorLeftLeg = root.getChild("armor_left_leg");
+        this.armorRightLeg = root.getChild("armor_right_leg");
+        this.armorLeftBoot = root.getChild("armor_left_boot");
+        this.armorRightBoot = root.getChild("armor_right_boot");
     }
 
     public static TexturedModelData getTexturedModelData() {
@@ -100,6 +116,31 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
                 ModelPartBuilder.create().uv(0, 16).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F),
                 ModelTransform.origin(-2.0F, 12.0F, 0.0F));
 
+        root.addChild("armor_helmet",
+                ModelPartBuilder.create().uv(0, 32).cuboid(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, new Dilation(0.55F)),
+                ModelTransform.origin(0.0F, 0.0F, 0.0F));
+        root.addChild("armor_body",
+                ModelPartBuilder.create().uv(16, 32).cuboid(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F, new Dilation(0.38F)),
+                ModelTransform.origin(0.0F, 0.0F, 0.0F));
+        root.addChild("armor_left_arm",
+                ModelPartBuilder.create().uv(40, 32).cuboid(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new Dilation(0.35F)),
+                ModelTransform.origin(5.0F, 2.0F, 0.0F));
+        root.addChild("armor_right_arm",
+                ModelPartBuilder.create().uv(40, 32).mirrored().cuboid(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new Dilation(0.35F)),
+                ModelTransform.origin(-5.0F, 2.0F, 0.0F));
+        root.addChild("armor_left_leg",
+                ModelPartBuilder.create().uv(0, 48).cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 7.0F, 4.0F, new Dilation(0.32F)),
+                ModelTransform.origin(2.0F, 12.0F, 0.0F));
+        root.addChild("armor_right_leg",
+                ModelPartBuilder.create().uv(0, 48).mirrored().cuboid(-2.0F, 0.0F, -2.0F, 4.0F, 7.0F, 4.0F, new Dilation(0.32F)),
+                ModelTransform.origin(-2.0F, 12.0F, 0.0F));
+        root.addChild("armor_left_boot",
+                ModelPartBuilder.create().uv(16, 48).cuboid(-2.0F, 6.0F, -2.0F, 4.0F, 6.0F, 4.0F, new Dilation(0.36F)),
+                ModelTransform.origin(2.0F, 12.0F, 0.0F));
+        root.addChild("armor_right_boot",
+                ModelPartBuilder.create().uv(16, 48).mirrored().cuboid(-2.0F, 6.0F, -2.0F, 4.0F, 6.0F, 4.0F, new Dilation(0.36F)),
+                ModelTransform.origin(-2.0F, 12.0F, 0.0F));
+
         return TexturedModelData.of(data, 64, 64);
     }
 
@@ -125,6 +166,7 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
             resetYawAndRoll(humanRightArm);
             resetYawAndRoll(humanLeftLeg);
             resetYawAndRoll(humanRightLeg);
+            syncArmorTransforms(state);
             return;
         }
 
@@ -140,6 +182,19 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
         tentacleBackRight.pitch = -0.25F + pulse * 0.8F;
         tentacleSideLeft.roll = 0.25F + pulse * 0.8F;
         tentacleSideRight.roll = -0.25F - pulse * 0.8F;
+        setArmorVisible(false, false, false, false);
+    }
+
+    private void syncArmorTransforms(WaterMonsterRenderState state) {
+        copyAngles(humanHead, armorHelmet);
+        copyAngles(humanBody, armorBody);
+        copyAngles(humanLeftArm, armorLeftArm);
+        copyAngles(humanRightArm, armorRightArm);
+        copyAngles(humanLeftLeg, armorLeftLeg);
+        copyAngles(humanRightLeg, armorRightLeg);
+        copyAngles(humanLeftLeg, armorLeftBoot);
+        copyAngles(humanRightLeg, armorRightBoot);
+        setArmorVisible(state.helmetVisible, state.chestArmorVisible, state.legArmorVisible, state.bootArmorVisible);
     }
 
     private void setSquidVisible(boolean visible) {
@@ -162,11 +217,31 @@ public class WaterMonsterModel extends EntityModel<WaterMonsterRenderState> impl
         humanRightArm.visible = visible;
         humanLeftLeg.visible = visible;
         humanRightLeg.visible = visible;
+        if (!visible) {
+            setArmorVisible(false, false, false, false);
+        }
     }
 
     private static void resetYawAndRoll(ModelPart part) {
         part.yaw = 0.0F;
         part.roll = 0.0F;
+    }
+
+    private void setArmorVisible(boolean helmet, boolean chest, boolean legs, boolean boots) {
+        armorHelmet.visible = helmet;
+        armorBody.visible = chest;
+        armorLeftArm.visible = chest;
+        armorRightArm.visible = chest;
+        armorLeftLeg.visible = legs;
+        armorRightLeg.visible = legs;
+        armorLeftBoot.visible = boots;
+        armorRightBoot.visible = boots;
+    }
+
+    private static void copyAngles(ModelPart source, ModelPart target) {
+        target.pitch = source.pitch;
+        target.yaw = source.yaw;
+        target.roll = source.roll;
     }
 
     @Override

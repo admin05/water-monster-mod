@@ -4,6 +4,8 @@ import com.example.examplemod.entity.WaterMonsterEntity;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
 import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
 
 public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, WaterMonsterRenderState, WaterMonsterModel> {
@@ -36,6 +38,10 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
         state.humanoidForm = true;
         state.attacking = entity.isAttacking();
         state.skinVariant = entity.getSkinVariant();
+        state.helmetVisible = hasEquipment(entity.getEquippedStack(EquipmentSlot.HEAD));
+        state.chestArmorVisible = hasEquipment(entity.getEquippedStack(EquipmentSlot.CHEST));
+        state.legArmorVisible = hasEquipment(entity.getEquippedStack(EquipmentSlot.LEGS));
+        state.bootArmorVisible = hasEquipment(entity.getEquippedStack(EquipmentSlot.FEET));
     }
 
     @Override
@@ -57,4 +63,7 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
         return flickerTick < 48;
     }
 
+    private static boolean hasEquipment(ItemStack stack) {
+        return !stack.isEmpty();
+    }
 }
