@@ -150,7 +150,7 @@ public class WaterMonsterEntity extends HostileEntity {
     }
 
     public boolean isHumanoidForm() {
-        return !this.isTouchingWater();
+        return true;
     }
 
     @Override

@@ -1,9 +1,12 @@
 package com.example.examplemod.entity.client;
 
 import com.example.examplemod.entity.WaterMonsterEntity;
+import net.minecraft.client.render.entity.BipedEntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.MobEntityRenderer;
-import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.client.render.entity.model.EntityModelLayers;
+import net.minecraft.client.render.entity.model.EquipmentModelData;
 import net.minecraft.util.Identifier;
 
 public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, WaterMonsterRenderState, WaterMonsterModel> {
@@ -19,6 +22,7 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     public WaterMonsterRenderer(EntityRendererFactory.Context context) {
         super(context, new WaterMonsterModel(context.getPart(ExampleModEntityRenderer.WATER_MONSTER_LAYER)), 0.5F);
         this.addFeature(new WaterMonsterHeldItemFeatureRenderer(this));
+        this.addFeature(new WaterMonsterArmorFeatureRenderer(this, createArmorModels(context), context.getEquipmentRenderer()));
     }
 
     @Override
@@ -29,11 +33,11 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     @Override
     public void updateRenderState(WaterMonsterEntity entity, WaterMonsterRenderState state, float tickDelta) {
         super.updateRenderState(entity, state, tickDelta);
-        ArmedEntityRenderState.updateRenderState(entity, state, this.itemModelResolver, tickDelta);
+        BipedEntityRenderer.updateBipedRenderState(entity, state, tickDelta, this.itemModelResolver);
         state.randomPlayerSkin = entity.shouldUseRandomPlayerSkin();
         state.phaseThreeSkin = entity.shouldUsePhaseThreeSkin();
         state.criticalSkinFlicker = entity.shouldFlickerCriticalSkin();
-        state.humanoidForm = state.randomPlayerSkin || state.phaseThreeSkin || entity.isHumanoidForm();
+        state.humanoidForm = true;
         state.attacking = entity.isAttacking();
         state.skinVariant = entity.getSkinVariant();
     }
@@ -55,5 +59,9 @@ public class WaterMonsterRenderer extends MobEntityRenderer<WaterMonsterEntity, 
     private static boolean shouldShowCriticalSkin(WaterMonsterRenderState state) {
         int flickerTick = (int) state.age % 60;
         return flickerTick < 48;
+    }
+
+    private static EquipmentModelData<BipedEntityModel<WaterMonsterRenderState>> createArmorModels(EntityRendererFactory.Context context) {
+        return EquipmentModelData.mapToEntityModel(EntityModelLayers.PLAYER_EQUIPMENT, context.getEntityModels(), BipedEntityModel::new);
     }
 }

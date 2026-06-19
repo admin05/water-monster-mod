@@ -1,8 +1,8 @@
 package com.example.examplemod.entity.client;
 
-import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
+import net.minecraft.client.render.entity.state.BipedEntityRenderState;
 
-public class WaterMonsterRenderState extends ArmedEntityRenderState {
+public class WaterMonsterRenderState extends BipedEntityRenderState {
     public boolean humanoidForm;
     public boolean attacking;
     public boolean randomPlayerSkin;
